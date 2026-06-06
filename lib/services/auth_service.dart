@@ -88,6 +88,16 @@ class AuthService {
     return user;
   }
 
+  Future<User> unifiedLogin(String identifier, String password) async {
+    final result = await _api.post('/auth/login', body: {
+      'identifier': identifier,
+      'password': password,
+    });
+    final user = User.fromUnifiedJson(result['user'], result['token']);
+    await saveSession(user);
+    return user;
+  }
+
   Future<User> registerDriver({
     required String phone,
     required String password,
@@ -124,6 +134,27 @@ class AuthService {
       'phone': phone,
       'purpose': purpose,
     });
+  }
+
+  Future<User> updateDriverProfile({
+    required String token,
+    required Map<String, String> fields,
+    List<int>? fileBytes,
+    String? fileName,
+  }) async {
+    final result = await _api.multipartRequest(
+      'PUT',
+      '/driver/profile',
+      fields: fields,
+      fileKey: 'profile_image',
+      fileBytes: fileBytes,
+      fileName: fileName,
+    );
+    // Note: unified login returned a JSON with type, role. 
+    // Since we are updating, we know it's a driver.
+    // Let's pass unified format. The profile payload has full_name, email, phone, etc.
+    final updatedUser = User.fromUnifiedJson(result['profile'], token);
+    return updatedUser;
   }
 
   Future<void> logout() async {

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/driver_subpage_navbar.dart';
 
 class DriverQrScreen extends StatelessWidget {
   const DriverQrScreen({super.key});
@@ -57,6 +58,7 @@ class DriverQrScreen extends StatelessWidget {
           ),
         ),
       ),
+      bottomNavigationBar: const DriverSubPageNavBar(activeIndex: -1),
     );
   }
 }

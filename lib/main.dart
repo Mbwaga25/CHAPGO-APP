@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'config/theme.dart';
 import 'providers/auth_provider.dart';
+import 'providers/language_provider.dart';
+import 'providers/cashflow_provider.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
 import 'screens/welcome_screen.dart';
@@ -19,6 +21,12 @@ import 'screens/driver/driver_profile_screen.dart';
 import 'screens/driver/driver_qr_screen.dart';
 import 'screens/driver/driver_score_screen.dart';
 import 'screens/driver/driver_loans_screen.dart';
+import 'screens/driver/driver_notifications_screen.dart';
+import 'screens/driver/driver_loans_list_screen.dart';
+import 'screens/driver/driver_stations_map_screen.dart';
+import 'screens/driver/driver_evaluation_report_screen.dart';
+import 'screens/driver/driver_cashflow_page.dart';
+import 'screens/sacco/sacco_home_screen.dart';
 
 void main() {
   runApp(const ChapgoApp());
@@ -36,6 +44,12 @@ class ChapgoApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(
           create: (_) => AuthProvider(authService)..tryAutoLogin(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => LanguageProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => CashflowProvider(),
         ),
       ],
       child: MaterialApp(
@@ -112,6 +126,35 @@ class ChapgoApp extends StatelessWidget {
             case '/driver/loans':
               return MaterialPageRoute(
                 builder: (_) => const DriverLoansScreen(),
+              );
+            case '/driver/notifications':
+              return MaterialPageRoute(
+                builder: (_) => const DriverNotificationsScreen(),
+                settings: settings,
+              );
+            case '/driver/loans/list':
+              return MaterialPageRoute(
+                builder: (_) => const DriverLoansListScreen(),
+                settings: settings,
+              );
+            case '/driver/stations/map':
+              return MaterialPageRoute(
+                builder: (_) => const DriverStationsMapScreen(),
+                settings: settings,
+              );
+            case '/driver/reports/evaluation':
+              return MaterialPageRoute(
+                builder: (_) => const DriverEvaluationReportScreen(),
+                settings: settings,
+              );
+            case '/driver/cashflow':
+              return MaterialPageRoute(
+                builder: (_) => const DriverCashflowPage(),
+                settings: settings,
+              );
+            case '/sacco/home':
+              return MaterialPageRoute(
+                builder: (_) => const SaccoHomeScreen(),
               );
 
             default:

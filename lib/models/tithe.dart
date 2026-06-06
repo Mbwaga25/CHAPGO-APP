@@ -1,3 +1,10 @@
+double _parseNum(dynamic val) {
+  if (val == null) return 0.0;
+  if (val is num) return val.toDouble();
+  if (val is String) return double.tryParse(val) ?? 0.0;
+  return 0.0;
+}
+
 class TitheTotals {
   final double transferredTsh;
   final double pendingTsh;
@@ -11,8 +18,8 @@ class TitheTotals {
 
   factory TitheTotals.fromJson(Map<String, dynamic> json) {
     return TitheTotals(
-      transferredTsh: (json['transferred_tsh'] as num?)?.toDouble() ?? 0,
-      pendingTsh: (json['pending_tsh'] as num?)?.toDouble() ?? 0,
+      transferredTsh: _parseNum(json['transferred_tsh']),
+      pendingTsh: _parseNum(json['pending_tsh']),
       totalTransactions: json['total_transactions'] as int? ?? 0,
     );
   }
@@ -42,8 +49,8 @@ class TitheTransaction {
       subsidiary: json['subsidiary'] as String? ?? '',
       periodStart: json['period_start'] as String? ?? '',
       periodEnd: json['period_end'] as String? ?? '',
-      subsidiaryProfitTsh: (json['subsidiary_profit_tsh'] as num?)?.toDouble() ?? 0,
-      titheAmountTsh: (json['tithe_amount_tsh'] as num?)?.toDouble() ?? 0,
+      subsidiaryProfitTsh: _parseNum(json['subsidiary_profit_tsh']),
+      titheAmountTsh: _parseNum(json['tithe_amount_tsh']),
       transferStatus: json['transfer_status'] as String? ?? 'pending',
       destination: json['destination'] as String? ?? '',
     );

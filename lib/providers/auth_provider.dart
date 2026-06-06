@@ -136,6 +136,23 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> login(String identifier, String password) async {
+    _status = AuthStatus.loading;
+    _error = null;
+    notifyListeners();
+    try {
+      _user = await _authService.unifiedLogin(identifier, password);
+      _status = AuthStatus.authenticated;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _status = AuthStatus.unauthenticated;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> registerDriver({
     required String phone,
     required String password,
@@ -177,6 +194,35 @@ class AuthProvider extends ChangeNotifier {
     _status = AuthStatus.unauthenticated;
     _error = null;
     notifyListeners();
+  }
+
+  Future<bool> updateDriverProfile({
+    required Map<String, String> fields,
+    List<int>? fileBytes,
+    String? fileName,
+  }) async {
+    if (_user == null) return false;
+    _status = AuthStatus.loading;
+    _error = null;
+    notifyListeners();
+    try {
+      final updatedUser = await _authService.updateDriverProfile(
+        token: _user!.token,
+        fields: fields,
+        fileBytes: fileBytes,
+        fileName: fileName,
+      );
+      _user = updatedUser;
+      await _authService.saveSession(_user!);
+      _status = AuthStatus.authenticated;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _status = AuthStatus.authenticated;
+      notifyListeners();
+      return false;
+    }
   }
 
   void clearError() {

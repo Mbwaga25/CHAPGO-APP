@@ -8,6 +8,7 @@ class User {
   final String? role;
   final String? stationName;
   final int? stationId;
+  final String? profileImageUrl;
 
   User({
     required this.token,
@@ -17,6 +18,7 @@ class User {
     this.role,
     this.stationName,
     this.stationId,
+    this.profileImageUrl,
   });
 
   UserRole? get userRole {
@@ -46,6 +48,32 @@ class User {
     return 'U';
   }
 
+  factory User.fromUnifiedJson(Map<String, dynamic> json, String token) {
+    final type = json['type'] as String?;
+    String? resolvedRole = json['role'] as String?;
+    
+    if (type == 'sacco_admin') {
+      resolvedRole = 'sacco_admin';
+    } else if (type == 'station_operator') {
+      resolvedRole = 'station_operator';
+    } else if (type == 'driver') {
+      resolvedRole = 'driver';
+    }
+    
+    return User(
+      token: token,
+      fullName: json['full_name'] as String?,
+      phone: json['phone'] as String?,
+      email: json['email'] as String?,
+      role: resolvedRole,
+      stationName: json['station_name'] as String?,
+      stationId: json['station_id'] is String
+          ? int.tryParse(json['station_id'] as String)
+          : json['station_id'] as int?,
+      profileImageUrl: json['profile_image_url'] as String?,
+    );
+  }
+
   factory User.fromAdminJson(Map<String, dynamic> json, String token) {
     return User(
       token: token,
@@ -72,6 +100,7 @@ class User {
       fullName: json['full_name'] as String?,
       phone: json['phone'] as String?,
       role: 'driver',
+      profileImageUrl: json['profile_image_url'] as String?,
     );
   }
 
@@ -83,6 +112,7 @@ class User {
     'role': role,
     'station_name': stationName,
     'station_id': stationId,
+    'profile_image_url': profileImageUrl,
   };
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -94,6 +124,7 @@ class User {
       role: json['role'] as String?,
       stationName: json['station_name'] as String?,
       stationId: json['station_id'] as int?,
+      profileImageUrl: json['profile_image_url'] as String?,
     );
   }
 }

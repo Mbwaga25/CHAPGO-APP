@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../models/user.dart';
 import 'overview_screen.dart';
 import 'safety_screen.dart';
 import 'ownership_screen.dart';
 import 'tithe_screen.dart';
 import 'reports_screen.dart';
 import 'audit_screen.dart';
+import 'campaigns_screen.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -25,6 +27,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     _ScreenInfo('Loans', 'screenLoans', Icons.monetization_on),
     _ScreenInfo('Ripoti Wizi', 'screenSafety', Icons.shield),
     _ScreenInfo('Escalations', 'screenEscalations', Icons.warning),
+    _ScreenInfo('Campaigns', 'screenCampaigns', Icons.campaign),
     _ScreenInfo('Member Ownership', 'screenOwnership', Icons.article),
     _ScreenInfo('Tithe Ledger', 'screenTithe', Icons.handshake),
     _ScreenInfo('RC Quarterly', 'screenReports', Icons.description),
@@ -57,6 +60,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           const PlaceholderScreen('Loans', 'Loan admin listing pending — Phase 2 enhancement'),
           const SafetyScreen(),
           const PlaceholderScreen('Escalations', 'Escalation listing endpoint pending — Phase 2 enhancement. Ops Lead receives WhatsApp alerts in realtime.'),
+          const CampaignsScreen(),
           const OwnershipScreen(),
           const TitheScreen(),
           const ReportsScreen(),
@@ -116,35 +120,57 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               Expanded(
                 child: ListView(
                   padding: EdgeInsets.zero,
-                  children: [
-                    _NavSection(label: 'Operations'),
-                    ..._screens.take(5).toList().asMap().entries.map((e) =>
-                      _NavItem(
-                        icon: e.value.icon,
-                        label: e.value.title,
-                        isSelected: _selectedIndex == e.key,
-                        onTap: () => _onSelect(e.key),
-                      ),
-                    ),
-                    _NavSection(label: 'Covenant'),
-                    ..._screens.skip(5).take(2).toList().asMap().entries.map((e) =>
-                      _NavItem(
-                        icon: e.value.icon,
-                        label: e.value.title,
-                        isSelected: _selectedIndex == e.key + 5,
-                        onTap: () => _onSelect(e.key + 5),
-                      ),
-                    ),
-                    _NavSection(label: 'Reporting'),
-                    ..._screens.skip(7).toList().asMap().entries.map((e) =>
-                      _NavItem(
-                        icon: e.value.icon,
-                        label: e.value.title,
-                        isSelected: _selectedIndex == e.key + 7,
-                        onTap: () => _onSelect(e.key + 7),
-                      ),
-                    ),
-                  ],
+                  children: user?.userRole == UserRole.saccoAdmin
+                      ? [
+                          const _NavSection(label: 'Operations'),
+                          _NavItem(
+                            icon: _screens[0].icon,
+                            label: _screens[0].title,
+                            isSelected: _selectedIndex == 0,
+                            onTap: () => _onSelect(0),
+                          ),
+                          _NavItem(
+                            icon: _screens[1].icon,
+                            label: _screens[1].title,
+                            isSelected: _selectedIndex == 1,
+                            onTap: () => _onSelect(1),
+                          ),
+                          _NavItem(
+                            icon: _screens[2].icon,
+                            label: _screens[2].title,
+                            isSelected: _selectedIndex == 2,
+                            onTap: () => _onSelect(2),
+                          ),
+                        ]
+                      : [
+                          const _NavSection(label: 'Operations'),
+                          ..._screens.take(6).toList().asMap().entries.map((e) =>
+                            _NavItem(
+                              icon: e.value.icon,
+                              label: e.value.title,
+                              isSelected: _selectedIndex == e.key,
+                              onTap: () => _onSelect(e.key),
+                            ),
+                          ),
+                          const _NavSection(label: 'Covenant'),
+                          ..._screens.skip(6).take(2).toList().asMap().entries.map((e) =>
+                            _NavItem(
+                              icon: e.value.icon,
+                              label: e.value.title,
+                              isSelected: _selectedIndex == e.key + 6,
+                              onTap: () => _onSelect(e.key + 6),
+                            ),
+                          ),
+                          const _NavSection(label: 'Reporting'),
+                          ..._screens.skip(8).toList().asMap().entries.map((e) =>
+                            _NavItem(
+                              icon: e.value.icon,
+                              label: e.value.title,
+                              isSelected: _selectedIndex == e.key + 8,
+                              onTap: () => _onSelect(e.key + 8),
+                            ),
+                          ),
+                        ],
                 ),
               ),
               Container(

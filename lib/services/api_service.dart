@@ -77,4 +77,58 @@ class ApiService {
 
   Future<dynamic> get(String path) => request('GET', path);
   Future<dynamic> post(String path, {dynamic body}) => request('POST', path, body: body);
+  Future<dynamic> put(String path, {dynamic body}) => request('PUT', path, body: body);
+
+  Future<dynamic> multipartRequest(
+    String method,
+    String path, {
+    Map<String, String>? fields,
+    String? fileKey,
+    List<int>? fileBytes,
+    String? fileName,
+  }) async {
+    final uri = Uri.parse('${ApiConfig.apiBase}$path');
+    final request = http.MultipartRequest(method.toUpperCase(), uri);
+    
+    if (_token != null) {
+      request.headers['Authorization'] = 'Bearer $_token';
+    }
+    
+    if (fields != null) {
+      request.fields.addAll(fields);
+    }
+    
+    if (fileKey != null && fileBytes != null) {
+      final multipartFile = http.MultipartFile.fromBytes(
+        fileKey,
+        fileBytes,
+        filename: fileName ?? 'upload.jpg',
+      );
+      request.files.add(multipartFile);
+    }
+    
+    try {
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      dynamic data;
+      try {
+        data = jsonDecode(response.body);
+      } catch (_) {}
+
+      if (response.statusCode == 401) {
+        throw ApiException('Session expired. Please login again.', statusCode: 401);
+      }
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        final message = data is Map ? (data['message'] ?? 'Request failed') : 'Request failed';
+        throw ApiException(message.toString(), statusCode: response.statusCode);
+      }
+
+      return data;
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Network error: ${e.toString()}');
+    }
+  }
 }
