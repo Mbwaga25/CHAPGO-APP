@@ -46,11 +46,17 @@ class _DriverCashflowPageState extends State<DriverCashflowPage> with SingleTick
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       if (args != null && args.containsKey('tab')) {
         final tabArg = args['tab'];
-        if (tabArg == 'income' || tabArg == 0) {
-          _tabController.index = 0;
-        } else if (tabArg == 'expense' || tabArg == 1) {
-          _tabController.index = 1;
-        }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              if (tabArg == 'income' || tabArg == 0) {
+                _tabController.index = 0;
+              } else if (tabArg == 'expense' || tabArg == 1) {
+                _tabController.index = 1;
+              }
+            });
+          }
+        });
       }
       _tabHandled = true;
     }

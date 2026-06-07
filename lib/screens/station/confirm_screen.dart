@@ -20,8 +20,8 @@ class _ConfirmScreenState extends State<ConfirmScreen> {
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     if (args != null) {
       _driverName = args['driver_name'] as String? ?? '';
-      _amount = args['amount'] as int? ?? 0;
-      _liters = (args['liters'] as num?)?.toDouble() ?? 0;
+      _amount = int.tryParse(args['amount']?.toString() ?? '') ?? 0;
+      _liters = double.tryParse(args['liters']?.toString() ?? '') ?? 0.0;
       _flagged = args['flagged'] as bool? ?? false;
     }
   }

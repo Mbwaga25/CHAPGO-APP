@@ -15,6 +15,7 @@ import 'screens/station/scan_screen.dart';
 import 'screens/station/manual_qr_screen.dart';
 import 'screens/station/enter_scan_screen.dart';
 import 'screens/station/confirm_screen.dart';
+import 'screens/station/operators_screen.dart';
 import 'screens/admin/admin_home_screen.dart';
 import 'screens/driver/driver_home_screen.dart';
 import 'screens/driver/driver_profile_screen.dart';
@@ -98,6 +99,10 @@ class ChapgoApp extends StatelessWidget {
             case '/station/confirm':
               return MaterialPageRoute(
                 builder: (_) => const ConfirmScreen(),
+              );
+            case '/station/operators':
+              return MaterialPageRoute(
+                builder: (_) => const OperatorsScreen(),
               );
 
             // Admin

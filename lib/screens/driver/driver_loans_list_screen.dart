@@ -181,9 +181,9 @@ class _DriverLoansListScreenState extends State<DriverLoansListScreen> with Sing
                                     itemBuilder: (context, i) {
                                       final loan = paginatedList[i];
                                       final purpose = loan['loan_purpose'] as String? ?? 'general';
-                                      final amount = (loan['amount_tsh'] as num?)?.toDouble() ?? 0.0;
+                                      final amount = double.tryParse(loan['amount_tsh']?.toString() ?? '') ?? 0.0;
                                       final term = loan['term_months'] as int? ?? 12;
-                                      final monthly = (loan['monthly_payment_tsh'] as num?)?.toDouble() ?? 0.0;
+                                      final monthly = double.tryParse(loan['monthly_payment_tsh']?.toString() ?? '') ?? 0.0;
                                       final status = loan['status'] as String? ?? 'pending';
                                       final dateStr = loan['applied_at'] != null
                                           ? DateTime.parse(loan['applied_at']).toLocal().toString().substring(0, 10)

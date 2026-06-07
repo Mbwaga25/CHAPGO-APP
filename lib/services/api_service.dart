@@ -13,6 +13,8 @@ class ApiException implements Exception {
 
 class ApiService {
   String? _token;
+  String? customSaccoId;
+  String? customStationId;
 
   void setToken(String? token) {
     _token = token;
@@ -21,6 +23,8 @@ class ApiService {
   Map<String, String> get _headers => {
     'Content-Type': 'application/json',
     if (_token != null) 'Authorization': 'Bearer $_token',
+    if (customSaccoId != null) 'x-sacco-id': customSaccoId!,
+    if (customStationId != null) 'x-station-id': customStationId!,
   };
 
   Future<dynamic> request(String method, String path, {dynamic body}) async {

@@ -43,10 +43,10 @@ class _ActiveMapViewState extends State<ActiveMapView> {
     final sortedStations = List.from(widget.stations);
     if (_useLiveLocation) {
       sortedStations.sort((a, b) {
-        final latA = (a['latitude'] as num?)?.toDouble() ?? 0.0;
-        final lngA = (a['longitude'] as num?)?.toDouble() ?? 0.0;
-        final latB = (b['latitude'] as num?)?.toDouble() ?? 0.0;
-        final lngB = (b['longitude'] as num?)?.toDouble() ?? 0.0;
+        final latA = double.tryParse(a['latitude']?.toString() ?? '') ?? 0.0;
+        final lngA = double.tryParse(a['longitude']?.toString() ?? '') ?? 0.0;
+        final latB = double.tryParse(b['latitude']?.toString() ?? '') ?? 0.0;
+        final lngB = double.tryParse(b['longitude']?.toString() ?? '') ?? 0.0;
         final distA = _calculateDistance(_simulatedLat, _simulatedLng, latA, lngA);
         final distB = _calculateDistance(_simulatedLat, _simulatedLng, latB, lngB);
         return distA.compareTo(distB);
@@ -83,8 +83,8 @@ class _ActiveMapViewState extends State<ActiveMapView> {
                 // Place fuel station pins
                 ...widget.stations.map((s) {
                   final name = s['name'] as String? ?? '';
-                  final lat = s['latitude'] != null ? (s['latitude'] as num).toDouble() : 0.0;
-                  final lng = s['longitude'] != null ? (s['longitude'] as num).toDouble() : 0.0;
+                  final lat = double.tryParse(s['latitude']?.toString() ?? '') ?? 0.0;
+                  final lng = double.tryParse(s['longitude']?.toString() ?? '') ?? 0.0;
                   
                   // Scale coordinates to fit visual screen center
                   final double xOffset = ((lng - 39.2) * 1200).clamp(20.0, 350.0);
@@ -168,8 +168,8 @@ class _ActiveMapViewState extends State<ActiveMapView> {
 
                 String distStr = '';
                 if (_useLiveLocation) {
-                  final lat = (s['latitude'] as num?)?.toDouble() ?? 0.0;
-                  final lng = (s['longitude'] as num?)?.toDouble() ?? 0.0;
+                  final lat = double.tryParse(s['latitude']?.toString() ?? '') ?? 0.0;
+                  final lng = double.tryParse(s['longitude']?.toString() ?? '') ?? 0.0;
                   final dist = _calculateDistance(_simulatedLat, _simulatedLng, lat, lng);
                   distStr = '${dist.toStringAsFixed(1)} km';
                 } else {

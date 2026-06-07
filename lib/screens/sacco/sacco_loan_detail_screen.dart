@@ -435,7 +435,7 @@ class _SaccoLoanDetailScreenState extends State<SaccoLoanDetailScreen> {
     final driverName = _loan!['driver_name'] ?? 'Driver';
     final chapgoId = _loan!['chapgo_id'] ?? '';
     final phone = _loan!['driver_phone'] ?? '';
-    final score = (_loan!['score'] as num?)?.toDouble() ?? 0.0;
+    final score = double.tryParse(_loan!['score']?.toString() ?? '') ?? 0.0;
     final tier = _loan!['tier'] as String? ?? 'unranked';
 
     final amount = double.parse(_loan!['amount_tsh'].toString());

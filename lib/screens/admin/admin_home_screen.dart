@@ -4,12 +4,17 @@ import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/user.dart';
 import 'overview_screen.dart';
+import 'admin_members_screen.dart';
+import 'admin_saccos_screen.dart';
+import 'admin_stations_screen.dart';
+import 'admin_loans_screen.dart';
 import 'safety_screen.dart';
+import 'admin_escalations_screen.dart';
+import 'campaigns_screen.dart';
 import 'ownership_screen.dart';
 import 'tithe_screen.dart';
 import 'reports_screen.dart';
 import 'audit_screen.dart';
-import 'campaigns_screen.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   const AdminHomeScreen({super.key});
@@ -24,6 +29,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   final _screens = [
     _ScreenInfo('Overview', 'screenOverview', Icons.dashboard),
     _ScreenInfo('Members', 'screenMembers', Icons.people),
+    _ScreenInfo('Saccos', 'screenSaccos', Icons.business),
+    _ScreenInfo('Petrol Stations', 'screenStations', Icons.local_gas_station),
     _ScreenInfo('Loans', 'screenLoans', Icons.monetization_on),
     _ScreenInfo('Ripoti Wizi', 'screenSafety', Icons.shield),
     _ScreenInfo('Escalations', 'screenEscalations', Icons.warning),
@@ -42,8 +49,19 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.bg,
       appBar: AppBar(
-        title: Text(_screens[_selectedIndex].title),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(_screens[_selectedIndex].title,
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            const Text(
+              'Admin Portal',
+              style: TextStyle(fontSize: 11, color: Colors.white54),
+            ),
+          ],
+        ),
         leading: Builder(
           builder: (ctx) => IconButton(
             icon: const Icon(Icons.menu),
@@ -56,16 +74,77 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         index: _selectedIndex,
         children: [
           const OverviewScreen(),
-          const PlaceholderScreen('Members', 'Member listing endpoint pending — Phase 2 enhancement'),
-          const PlaceholderScreen('Loans', 'Loan admin listing pending — Phase 2 enhancement'),
+          const AdminMembersScreen(),
+          const AdminSaccosScreen(),
+          const AdminStationsScreen(),
+          const AdminLoansScreen(),
           const SafetyScreen(),
-          const PlaceholderScreen('Escalations', 'Escalation listing endpoint pending — Phase 2 enhancement. Ops Lead receives WhatsApp alerts in realtime.'),
+          const AdminEscalationsScreen(),
           const CampaignsScreen(),
           const OwnershipScreen(),
           const TitheScreen(),
           const ReportsScreen(),
           const AuditScreen(),
         ],
+      ),
+      bottomNavigationBar: _selectedIndex < 5 ? _buildBottomNav() : null,
+    );
+  }
+
+  Widget _buildBottomNav() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        border: const Border(top: BorderSide(color: AppTheme.border, width: 1)),
+        boxShadow: [
+          BoxShadow(color: AppTheme.navy.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, -4)),
+        ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _adminNavItem(0, Icons.dashboard_outlined, Icons.dashboard, 'Overview'),
+              _adminNavItem(1, Icons.people_outline, Icons.people, 'Members'),
+              _adminNavItem(2, Icons.business_outlined, Icons.business, 'Saccos'),
+              _adminNavItem(3, Icons.local_gas_station_outlined, Icons.local_gas_station, 'Stations'),
+              _adminNavItem(4, Icons.monetization_on_outlined, Icons.monetization_on, 'Loans'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _adminNavItem(int index, IconData icon, IconData activeIcon, String label) {
+    final isActive = _selectedIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedIndex = index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? AppTheme.navy.withValues(alpha: 0.08) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(isActive ? activeIcon : icon,
+                color: isActive ? AppTheme.navy : AppTheme.grayLight, size: 22),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                color: isActive ? AppTheme.navy : AppTheme.grayLight,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -79,72 +158,91 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ─── Profile header ───────────────────────
               Container(
                 padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                  ),
+                ),
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      backgroundColor: AppTheme.gold,
-                      child: Text(
-                        user?.initials ?? 'A',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.white,
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [AppTheme.gold, AppTheme.goldDark],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Center(
+                        child: Text(
+                          user?.initials ?? 'A',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.white,
+                            fontSize: 20,
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user?.fullName ?? 'Admin',
-                          style: const TextStyle(
-                            color: AppTheme.white,
-                            fontWeight: FontWeight.w600,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user?.fullName ?? 'Admin',
+                            style: const TextStyle(
+                              color: AppTheme.white,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                            ),
                           ),
-                        ),
-                        Text(
-                          user?.role ?? 'admin',
-                          style: const TextStyle(
-                            color: AppTheme.goldLight,
-                            fontSize: 12,
+                          const SizedBox(height: 3),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppTheme.gold.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppTheme.gold.withValues(alpha: 0.4)),
+                            ),
+                            child: Text(
+                              (user?.role ?? 'admin').toUpperCase(),
+                              style: const TextStyle(
+                                color: AppTheme.goldLight,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-              const Divider(color: AppTheme.navyLight),
+
+              // ─── Nav items ────────────────────────────
               Expanded(
                 child: ListView(
-                  padding: EdgeInsets.zero,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   children: user?.userRole == UserRole.saccoAdmin
                       ? [
                           const _NavSection(label: 'Operations'),
-                          _NavItem(
-                            icon: _screens[0].icon,
-                            label: _screens[0].title,
-                            isSelected: _selectedIndex == 0,
-                            onTap: () => _onSelect(0),
-                          ),
-                          _NavItem(
-                            icon: _screens[1].icon,
-                            label: _screens[1].title,
-                            isSelected: _selectedIndex == 1,
-                            onTap: () => _onSelect(1),
-                          ),
-                          _NavItem(
-                            icon: _screens[2].icon,
-                            label: _screens[2].title,
-                            isSelected: _selectedIndex == 2,
-                            onTap: () => _onSelect(2),
-                          ),
+                          _NavItem(icon: _screens[0].icon, label: _screens[0].title,
+                              isSelected: _selectedIndex == 0, onTap: () => _onSelect(0)),
+                          _NavItem(icon: _screens[1].icon, label: _screens[1].title,
+                              isSelected: _selectedIndex == 1, onTap: () => _onSelect(1)),
+                          _NavItem(icon: _screens[4].icon, label: _screens[4].title,
+                              isSelected: _selectedIndex == 4, onTap: () => _onSelect(4)),
                         ]
                       : [
                           const _NavSection(label: 'Operations'),
-                          ..._screens.take(6).toList().asMap().entries.map((e) =>
+                          ..._screens.take(8).toList().asMap().entries.map((e) =>
                             _NavItem(
                               icon: e.value.icon,
                               label: e.value.title,
@@ -153,16 +251,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                             ),
                           ),
                           const _NavSection(label: 'Covenant'),
-                          ..._screens.skip(6).take(2).toList().asMap().entries.map((e) =>
-                            _NavItem(
-                              icon: e.value.icon,
-                              label: e.value.title,
-                              isSelected: _selectedIndex == e.key + 6,
-                              onTap: () => _onSelect(e.key + 6),
-                            ),
-                          ),
-                          const _NavSection(label: 'Reporting'),
-                          ..._screens.skip(8).toList().asMap().entries.map((e) =>
+                          ..._screens.skip(8).take(2).toList().asMap().entries.map((e) =>
                             _NavItem(
                               icon: e.value.icon,
                               label: e.value.title,
@@ -170,26 +259,55 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                               onTap: () => _onSelect(e.key + 8),
                             ),
                           ),
+                          const _NavSection(label: 'Reporting'),
+                          ..._screens.skip(10).toList().asMap().entries.map((e) =>
+                            _NavItem(
+                              icon: e.value.icon,
+                              label: e.value.title,
+                              isSelected: _selectedIndex == e.key + 10,
+                              onTap: () => _onSelect(e.key + 10),
+                            ),
+                          ),
                         ],
                 ),
               ),
+
+              // ─── Footer ───────────────────────────────
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.08))),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('v1.0 · Pilot', style: TextStyle(color: AppTheme.grayLight, fontSize: 12)),
-                    const SizedBox(height: 4),
-                    TextButton.icon(
-                      onPressed: () async {
+                    Text('v1.0 · Pilot',
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 11)),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: () async {
                         Navigator.pop(context);
                         await context.read<AuthProvider>().logout();
                         if (context.mounted) {
                           Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
                         }
                       },
-                      icon: const Icon(Icons.logout, color: AppTheme.goldLight, size: 18),
-                      label: const Text('Sign Out', style: TextStyle(color: AppTheme.goldLight)),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: AppTheme.red.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppTheme.red.withValues(alpha: 0.3)),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.logout, color: AppTheme.red, size: 18),
+                            SizedBox(width: 8),
+                            Text('Sign Out', style: TextStyle(color: AppTheme.red, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -216,14 +334,14 @@ class _NavSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 6),
       child: Text(
         label.toUpperCase(),
-        style: const TextStyle(
-          color: AppTheme.grayLight,
-          fontSize: 11,
+        style: TextStyle(
+          color: Colors.white.withValues(alpha: 0.35),
+          fontSize: 10,
           letterSpacing: 2,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );
@@ -245,23 +363,39 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       decoration: BoxDecoration(
-        color: isSelected ? AppTheme.gold.withValues(alpha: 0.15) : null,
-        border: isSelected
-            ? const Border(left: BorderSide(color: AppTheme.gold, width: 3))
-            : null,
+        color: isSelected ? AppTheme.gold.withValues(alpha: 0.12) : Colors.transparent,
+        borderRadius: BorderRadius.circular(10),
+        border: isSelected ? Border.all(color: AppTheme.gold.withValues(alpha: 0.3)) : null,
       ),
-      child: ListTile(
-        leading: Icon(icon, color: AppTheme.white, size: 20),
-        title: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? AppTheme.white : AppTheme.white.withValues(alpha: 0.8),
-            fontSize: 14,
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
+          dense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+          leading: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppTheme.gold.withValues(alpha: 0.15)
+                  : Colors.white.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: isSelected ? AppTheme.gold : Colors.white60, size: 18),
           ),
+          title: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : Colors.white70,
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
+            ),
+          ),
+          onTap: onTap,
         ),
-        onTap: onTap,
       ),
     );
   }
@@ -280,18 +414,18 @@ class PlaceholderScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.construction, size: 48, color: AppTheme.grayLight),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceVariant,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Icon(Icons.construction, size: 48, color: AppTheme.grayLight),
             ),
+            const SizedBox(height: 20),
+            Text(title, style: AppTheme.headingMedium),
             const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: AppTheme.gray),
-            ),
+            Text(message, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.gray)),
           ],
         ),
       ),

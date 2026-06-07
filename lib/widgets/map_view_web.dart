@@ -171,10 +171,10 @@ class _ActiveMapViewState extends State<ActiveMapView> {
     final sortedStations = List.from(widget.stations);
     if (_userLat != null && _userLng != null) {
       sortedStations.sort((a, b) {
-        final latA = (a['latitude'] as num?)?.toDouble() ?? 0.0;
-        final lngA = (a['longitude'] as num?)?.toDouble() ?? 0.0;
-        final latB = (b['latitude'] as num?)?.toDouble() ?? 0.0;
-        final lngB = (b['longitude'] as num?)?.toDouble() ?? 0.0;
+        final latA = double.tryParse(a['latitude']?.toString() ?? '') ?? 0.0;
+        final lngA = double.tryParse(a['longitude']?.toString() ?? '') ?? 0.0;
+        final latB = double.tryParse(b['latitude']?.toString() ?? '') ?? 0.0;
+        final lngB = double.tryParse(b['longitude']?.toString() ?? '') ?? 0.0;
         final distA = _calculateDistance(_userLat!, _userLng!, latA, lngA);
         final distB = _calculateDistance(_userLat!, _userLng!, latB, lngB);
         return distA.compareTo(distB);
@@ -197,8 +197,8 @@ class _ActiveMapViewState extends State<ActiveMapView> {
               
               String distStr = '';
               if (_userLat != null && _userLng != null) {
-                final lat = (s['latitude'] as num?)?.toDouble() ?? 0.0;
-                final lng = (s['longitude'] as num?)?.toDouble() ?? 0.0;
+                final lat = double.tryParse(s['latitude']?.toString() ?? '') ?? 0.0;
+                final lng = double.tryParse(s['longitude']?.toString() ?? '') ?? 0.0;
                 final dist = _calculateDistance(_userLat!, _userLng!, lat, lng);
                 distStr = '${dist.toStringAsFixed(1)} km';
               } else {

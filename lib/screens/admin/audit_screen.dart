@@ -19,7 +19,9 @@ class _AuditScreenState extends State<AuditScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadData();
+    });
   }
 
   Future<void> _loadData() async {

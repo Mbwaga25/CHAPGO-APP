@@ -67,7 +67,7 @@ class _DriverEvaluationReportScreenState extends State<DriverEvaluationReportScr
     try {
       final scoreRes = await _api.get('/scores/me');
       setState(() {
-        _score = (scoreRes['score'] as num?)?.toDouble() ?? 0.0;
+        _score = double.tryParse(scoreRes['score']?.toString() ?? '') ?? 0.0;
         _tier = scoreRes['tier'] as String? ?? 'unranked';
         _scansCount = scoreRes['total_scans'] as int? ?? 0;
         _daysActive = scoreRes['days_active'] as int? ?? 0;

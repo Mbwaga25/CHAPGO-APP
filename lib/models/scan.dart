@@ -56,7 +56,7 @@ class DailySummary {
 
   factory DailySummary.fromJson(Map<String, dynamic> json) {
     return DailySummary(
-      scanCount: json['scan_count'] as int? ?? 0,
+      scanCount: int.tryParse((json['scan_count'] ?? '0').toString()) ?? 0,
       totalLiters: double.tryParse((json['total_liters'] ?? '0').toString()) ?? 0,
       totalAmountTsh: double.tryParse((json['total_amount_tsh'] ?? '0').toString()) ?? 0,
     );

@@ -22,7 +22,9 @@ class _OverviewScreenState extends State<OverviewScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadData();
+    });
   }
 
   Future<void> _loadData() async {

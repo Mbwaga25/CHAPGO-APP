@@ -21,7 +21,9 @@ class _SafetyScreenState extends State<SafetyScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadData();
+    });
   }
 
   Future<void> _loadData() async {

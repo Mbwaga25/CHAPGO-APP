@@ -11,7 +11,9 @@ import 'sacco_notifications_screen.dart';
 import 'sacco_driver_detail_screen.dart';
 
 class SaccoHomeScreen extends StatefulWidget {
-  const SaccoHomeScreen({super.key});
+  final String? saccoId;
+  final String? saccoName;
+  const SaccoHomeScreen({super.key, this.saccoId, this.saccoName});
 
   @override
   State<SaccoHomeScreen> createState() => _SaccoHomeScreenState();
@@ -60,6 +62,9 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
     final user = context.read<AuthProvider>().user;
     if (user != null) {
       _api.setToken(user.token);
+    }
+    if (widget.saccoId != null) {
+      _api.customSaccoId = widget.saccoId;
     }
 
     _loadAllData();
@@ -293,11 +298,27 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
     final lang = context.watch<LanguageProvider>();
     final auth = context.watch<AuthProvider>();
 
-    final saccoName = auth.user?.stationName ?? 'UMOBOKE SACCO';
+    final saccoName = widget.saccoName ?? auth.user?.stationName ?? 'UMOBOKE SACCO';
 
     return Scaffold(
+      backgroundColor: AppTheme.bg,
       appBar: AppBar(
-        title: Text(saccoName),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(saccoName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            Text(
+              lang.locale == 'en' ? 'SACCO Management' : 'Usimamizi wa SACCO',
+              style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.65), letterSpacing: 0.3),
+            ),
+          ],
+        ),
+        leading: widget.saccoId != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
         actions: [
           Stack(
             alignment: Alignment.center,
@@ -351,7 +372,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
           ),
         ],
       ),
-      drawer: Drawer(
+      drawer: widget.saccoId != null ? null : Drawer(
         child: Column(
           children: [
             UserAccountsDrawerHeader(
@@ -484,47 +505,72 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
           _buildStandardsTab(lang),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() => _currentIndex = index);
-          _refreshTab(index);
-        },
-        selectedItemColor: AppTheme.gold,
-        unselectedItemColor: AppTheme.grayLight,
-        backgroundColor: AppTheme.white,
-        type: BottomNavigationBarType.fixed,
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.dashboard_outlined),
-            activeIcon: const Icon(Icons.dashboard),
-            label: lang.translate('overview'),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.people_outline),
-            activeIcon: const Icon(Icons.people),
-            label: lang.locale == 'en' ? 'Members' : 'Wanachama',
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.monetization_on_outlined),
-            activeIcon: const Icon(Icons.monetization_on),
-            label: lang.locale == 'en' ? 'Collections' : 'Makusanyo',
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.assignment_outlined),
-            activeIcon: const Icon(Icons.assignment_late),
-            label: lang.translate('loans'),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.rule_folder_outlined),
-            activeIcon: const Icon(Icons.rule),
-            label: lang.translate('standards') ?? 'Standards',
-          ),
+      bottomNavigationBar: _buildBottomNav(lang),
+    );
+  }
+
+  Widget _buildBottomNav(LanguageProvider lang) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        border: const Border(top: BorderSide(color: AppTheme.border, width: 1)),
+        boxShadow: [
+          BoxShadow(color: AppTheme.navy.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, -4)),
         ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _saccoNavItem(0, Icons.dashboard_outlined, Icons.dashboard, lang.translate('overview')),
+              _saccoNavItem(1, Icons.people_outline, Icons.people, lang.locale == 'en' ? 'Members' : 'Wanachama'),
+              _saccoNavItem(2, Icons.monetization_on_outlined, Icons.monetization_on, lang.locale == 'en' ? 'Collections' : 'Makusanyo'),
+              _saccoNavItem(3, Icons.assignment_outlined, Icons.assignment_late, lang.translate('loans')),
+              _saccoNavItem(4, Icons.rule_folder_outlined, Icons.rule, lang.translate('standards') ?? 'Standards'),
+            ],
+          ),
+        ),
       ),
     );
   }
 
+  Widget _saccoNavItem(int index, IconData icon, IconData activeIcon, String label) {
+    final isActive = _currentIndex == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _currentIndex = index);
+        _refreshTab(index);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? AppTheme.navy.withValues(alpha: 0.08) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(isActive ? activeIcon : icon,
+                color: isActive ? AppTheme.navy : AppTheme.grayLight, size: 22),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                color: isActive ? AppTheme.navy : AppTheme.grayLight,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==========================================
   // ==========================================
   // TAB 1: OVERVIEW
   // ==========================================
@@ -541,88 +587,161 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
     return RefreshIndicator(
       onRefresh: _loadAllData,
       child: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.zero,
         children: [
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.3,
-            children: [
-              _overviewCard(
-                lang.locale == 'en' ? 'Active Members' : 'Wanachama Hai',
-                '$activeMembers',
-                Icons.people,
-                Colors.blue,
+          // ─── Gradient header ────────────────────────
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [AppTheme.navy, Color(0xFF1E3A5F)],
               ),
-              _overviewCard(
-                lang.locale == 'en' ? '30d Collections' : 'Makusanyo (Siku 30)',
-                'TSh ${collections30d.toStringAsFixed(0)}',
-                Icons.account_balance_wallet,
-                Colors.green,
-              ),
-              _overviewCard(
-                lang.locale == 'en' ? 'Active Loans' : 'Mikopo Inayoendelea',
-                '$activeLoans',
-                Icons.assignment,
-                Colors.orange,
-              ),
-              _overviewCard(
-                lang.locale == 'en' ? 'Disbursed Value' : 'Kiasi Kilichokopeshwa',
-                'TSh ${activeLoansVal.toStringAsFixed(0)}',
-                Icons.monetization_on,
-                Colors.teal,
-              ),
-            ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: _headerStatCard(
+                      lang.locale == 'en' ? 'Active Members' : 'Wanachama Hai',
+                      '$activeMembers',
+                      Icons.people,
+                      AppTheme.accent,
+                    )),
+                    const SizedBox(width: 12),
+                    Expanded(child: _headerStatCard(
+                      lang.locale == 'en' ? '30d Collections' : 'Makusanyo (30d)',
+                      'TSh ${collections30d.toStringAsFixed(0)}',
+                      Icons.account_balance_wallet,
+                      AppTheme.green,
+                    )),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(child: _headerStatCard(
+                      lang.locale == 'en' ? 'Active Loans' : 'Mikopo Hai',
+                      '$activeLoans',
+                      Icons.assignment,
+                      AppTheme.orange,
+                    )),
+                    const SizedBox(width: 12),
+                    Expanded(child: _headerStatCard(
+                      lang.locale == 'en' ? 'Disbursed Value' : 'Kiasi Kilichokopeshwa',
+                      'TSh ${activeLoansVal.toStringAsFixed(0)}',
+                      Icons.monetization_on,
+                      AppTheme.teal,
+                    )),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 24),
-          Text(
-            lang.locale == 'en' ? 'Recent Sacco Collections' : 'Makusanyo ya Hivi Karibuni',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
+
+          // ─── Quick actions ──────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _quickActionBtn(
+                    icon: Icons.search,
+                    label: lang.translate('system_drivers_search') ?? 'Search Drivers',
+                    color: AppTheme.accent,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const SaccoDriverSearchScreen()),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _quickActionBtn(
+                    icon: Icons.campaign,
+                    label: lang.locale == 'en' ? 'Broadcast' : 'Tangazo',
+                    color: AppTheme.purple,
+                    onTap: () => _openBroadcastDialog(lang),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          _buildCollectionsList(lang, limit: 8),
+
+          // ─── Recent collections ─────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 10),
+            child: Text(
+              lang.locale == 'en' ? 'Recent Sacco Collections' : 'Makusanyo ya Hivi Karibuni',
+              style: AppTheme.headingSmall,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: _buildCollectionsList(lang, limit: 8),
+          ),
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  Widget _overviewCard(String label, String value, IconData icon, Color color) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
+  Widget _headerStatCard(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(height: 10),
+          Text(label, style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(value, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _quickActionBtn({required IconData icon, required String label, required Color color, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.25)),
+        ),
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Icon(icon, color: color, size: 24),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: const TextStyle(fontSize: 12, color: AppTheme.gray, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 4),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                value,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color),
-              ),
-            ),
+            Icon(icon, color: color, size: 18),
+            const SizedBox(width: 8),
+            Text(label, style: TextStyle(fontSize: 13, color: color, fontWeight: FontWeight.w600)),
           ],
         ),
       ),
     );
   }
+
+
 
   // ==========================================
   // TAB 2: MEMBERS LIST
@@ -1343,7 +1462,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                           ),
                         ],
                       ),
-                      if (selectedLoan['missed_payments_count'] != null && (selectedLoan['missed_payments_count'] as num) > 0) ...[
+                      if (selectedLoan['missed_payments_count'] != null && (double.tryParse(selectedLoan['missed_payments_count'].toString()) ?? 0.0) > 0) ...[
                         const SizedBox(height: 8),
                         Container(
                           width: double.infinity,
@@ -1725,7 +1844,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                             final loanId = l['id'];
                             final driverName = l['driver_name'] ?? 'Driver';
                             final phone = l['driver_phone'] ?? '';
-                            final score = (l['score'] as num?)?.toDouble() ?? 0.0;
+                            final score = double.tryParse(l['score']?.toString() ?? '') ?? 0.0;
                             final tier = l['tier'] as String? ?? 'unranked';
                             final amount = double.parse(l['amount_tsh'].toString());
                             final purpose = l['loan_purpose'] ?? 'fuel';

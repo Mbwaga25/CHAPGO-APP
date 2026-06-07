@@ -106,7 +106,7 @@ class _SaccoDriverSearchScreenState extends State<SaccoDriverSearchScreen> {
                         itemCount: _results.length,
                         itemBuilder: (context, idx) {
                           final d = _results[idx];
-                          final score = (d['score'] as num?)?.toDouble() ?? 0.0;
+                          final score = double.tryParse(d['score']?.toString() ?? '') ?? 0.0;
                           final tier = d['tier'] as String? ?? 'unranked';
                           final isMember = d['sacco_name'] != null;
 

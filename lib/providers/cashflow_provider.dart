@@ -33,7 +33,7 @@ class CashflowTransaction {
     return CashflowTransaction(
       id: json['id'] as String? ?? DateTime.now().microsecondsSinceEpoch.toString(),
       type: json['type'] as String? ?? 'expense',
-      amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
+      amount: double.tryParse(json['amount']?.toString() ?? '') ?? 0.0,
       category: json['category'] as String? ?? 'other',
       date: json['date'] != null ? DateTime.parse(json['date'] as String) : DateTime.now(),
       description: json['description'] as String? ?? '',
