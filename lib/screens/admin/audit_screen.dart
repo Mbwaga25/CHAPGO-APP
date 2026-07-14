@@ -28,16 +28,21 @@ class _AuditScreenState extends State<AuditScreen> {
     final user = context.read<AuthProvider>().user;
     if (user == null) return;
     final api = ApiService()..setToken(user.token);
-    setState(() => _loading = true);
+    if (mounted) {
+      setState(() => _loading = true);
+    }
     try {
       final a = await api.get('/admin/audit-log?limit=50');
+      if (!mounted) return;
       setState(() {
         _entries = (a['entries'] as List?)?.map((e) => AuditEntry.fromJson(e)).toList() ?? [];
       });
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 

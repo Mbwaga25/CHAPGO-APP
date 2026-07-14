@@ -31,11 +31,14 @@ class _SafetyScreenState extends State<SafetyScreen> {
     if (user == null) return;
 
     final api = ApiService()..setToken(user.token);
-    setState(() => _loading = true);
+    if (mounted) {
+      setState(() => _loading = true);
+    }
 
     try {
       final alertsData = await api.get('/safety/alerts?hours=48');
       final watchlistData = await api.get('/safety/watchlist');
+      if (!mounted) return;
       setState(() {
         _alerts = (alertsData['alerts'] as List?)?.map((a) => TheftAlert.fromJson(a)).toList() ?? [];
         _watchlist = (watchlistData['watchlist'] as List?)?.map((w) => WatchlistItem.fromJson(w)).toList() ?? [];
@@ -45,7 +48,9 @@ class _SafetyScreenState extends State<SafetyScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
       }
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 

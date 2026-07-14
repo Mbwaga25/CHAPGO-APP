@@ -31,10 +31,13 @@ class _TitheScreenState extends State<TitheScreen> {
     final user = context.read<AuthProvider>().user;
     if (user == null) return;
     final api = ApiService()..setToken(user.token);
-    setState(() => _loading = true);
+    if (mounted) {
+      setState(() => _loading = true);
+    }
     try {
       final t = await api.get('/tithe/admin/totals');
       final l = await api.get('/tithe/admin/ledger');
+      if (!mounted) return;
       setState(() {
         _totals = TitheTotals.fromJson(t);
         _transactions = (l['transactions'] as List?)?.map((x) => TitheTransaction.fromJson(x)).toList() ?? [];
@@ -42,7 +45,9 @@ class _TitheScreenState extends State<TitheScreen> {
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 

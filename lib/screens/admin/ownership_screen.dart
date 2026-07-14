@@ -31,11 +31,14 @@ class _OwnershipScreenState extends State<OwnershipScreen> {
     final api = ApiService()..setToken(user.token);
     try {
       final d = await api.get('/member/admin/total-units');
+      if (!mounted) return;
       setState(() => _data = OwnershipData.fromJson(d));
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 

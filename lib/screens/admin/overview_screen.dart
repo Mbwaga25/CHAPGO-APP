@@ -32,21 +32,28 @@ class _OverviewScreenState extends State<OverviewScreen> {
     if (user == null) return;
 
     final api = ApiService()..setToken(user.token);
-    setState(() => _loading = true);
+    if (mounted) {
+      setState(() => _loading = true);
+    }
 
     try {
       final endpoint = user.userRole == UserRole.saccoAdmin 
           ? '/sacco/overview' 
           : '/admin/dashboard';
       final data = await api.get(endpoint);
+      if (!mounted) return;
       setState(() {
         _metrics = DashboardMetrics.fromJson(data);
         _error = null;
       });
     } catch (e) {
-      setState(() => _error = e.toString());
+      if (mounted) {
+        setState(() => _error = e.toString());
+      }
     } finally {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 

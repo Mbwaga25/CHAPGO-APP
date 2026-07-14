@@ -49,9 +49,12 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   }
 
   Future<void> _loadQuarterlyData() async {
-    setState(() => _loadingQuarterly = true);
+    if (mounted) {
+      setState(() => _loadingQuarterly = true);
+    }
     try {
       final r = await _api.get('/reports/rc-quarterly');
+      if (!mounted) return;
       setState(() {
         _quarterlyReports = (r['reports'] as List?)?.map((x) => QuarterlyReport.fromJson(x)).toList() ?? [];
       });
@@ -65,9 +68,12 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   }
 
   Future<void> _loadDriversData() async {
-    setState(() => _loadingDrivers = true);
+    if (mounted) {
+      setState(() => _loadingDrivers = true);
+    }
     try {
       final res = await _api.get('/admin/drivers');
+      if (!mounted) return;
       setState(() {
         _drivers = res['drivers'] as List? ?? [];
       });
@@ -79,12 +85,14 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
   }
 
   Future<void> _selectDriver(dynamic driver) async {
-    setState(() {
-      _selectedDriver = driver;
-      _loadingHistory = true;
-      _currentScoreDetails = null;
-      _scoreHistory = [];
-    });
+    if (mounted) {
+      setState(() {
+        _selectedDriver = driver;
+        _loadingHistory = true;
+        _currentScoreDetails = null;
+        _scoreHistory = [];
+      });
+    }
 
     try {
       // 1. Live recalculate score
@@ -92,6 +100,7 @@ class _ReportsScreenState extends State<ReportsScreen> with SingleTickerProvider
       // 2. Fetch history
       final historyRes = await _api.get('/scores/admin/history/${driver['id']}');
 
+      if (!mounted) return;
       setState(() {
         _currentScoreDetails = scoreRes;
         _scoreHistory = historyRes is List ? historyRes : [];
