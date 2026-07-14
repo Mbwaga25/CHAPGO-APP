@@ -99,7 +99,7 @@ class _SaccoDriverSearchScreenState extends State<SaccoDriverSearchScreen> {
                           lang.locale == 'en'
                               ? 'No drivers found.'
                               : 'Hakuna dereva aliyepatikana.',
-                          style: const TextStyle(color: AppTheme.gray, fontStyle: FontStyle.italic),
+                          style: TextStyle(color: AppTheme.gray, fontStyle: FontStyle.italic),
                         ),
                       )
                     : ListView.builder(
@@ -121,7 +121,7 @@ class _SaccoDriverSearchScreenState extends State<SaccoDriverSearchScreen> {
                                 children: [
                                   Text(
                                     'Score: ${score.toStringAsFixed(0)}',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.gold),
+                                    style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.gold),
                                   ),
                                   const SizedBox(height: 4),
                                   Container(

@@ -5,6 +5,7 @@ import 'api_service.dart';
 
 class AuthService {
   final ApiService _api;
+  ApiService get api => _api;
   static const String _tokenKey = 'chapgo_token';
   static const String _userKey = 'chapgo_user';
 

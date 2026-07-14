@@ -127,7 +127,7 @@ class _DriverEvaluationReportScreenState extends State<DriverEvaluationReportScr
                     children: [
                       Text(
                         lang.translate('filter_date') ?? 'Date Filter / Kuchuja kwa Tarehe',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy, fontSize: 14),
+                        style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy, fontSize: 14),
                       ),
                       DropdownButton<String>(
                         value: _reportDateFilter,
@@ -163,7 +163,7 @@ class _DriverEvaluationReportScreenState extends State<DriverEvaluationReportScr
                         children: [
                           Text(
                             lang.translate('eval_usage_score') ?? 'System Utilization Score',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
                           ),
                           const SizedBox(height: 16),
                           Center(
@@ -182,7 +182,7 @@ class _DriverEvaluationReportScreenState extends State<DriverEvaluationReportScr
                                 ),
                                 Text(
                                   '${usageRating.toStringAsFixed(0)}%',
-                                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.navy),
                                 ),
                               ],
                             ),
@@ -190,7 +190,7 @@ class _DriverEvaluationReportScreenState extends State<DriverEvaluationReportScr
                           const SizedBox(height: 16),
                           Text(
                             lang.translate('eval_usage_desc') ?? 'Your rating of how actively you scan fuel and log cashflow. High usage improves credit tier!',
-                            style: const TextStyle(fontSize: 13, color: AppTheme.gray),
+                            style: TextStyle(fontSize: 13, color: AppTheme.gray),
                             textAlign: TextAlign.center,
                           ),
                         ],
@@ -208,7 +208,7 @@ class _DriverEvaluationReportScreenState extends State<DriverEvaluationReportScr
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Financial Summary / Muhtasari wa Fedha',
                             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
                           ),
@@ -216,7 +216,7 @@ class _DriverEvaluationReportScreenState extends State<DriverEvaluationReportScr
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(lang.translate('income'), style: const TextStyle(color: AppTheme.gray)),
+                              Text(lang.translate('income'), style: TextStyle(color: AppTheme.gray)),
                               Text('TSh ${displayIncome.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
                             ],
                           ),
@@ -224,7 +224,7 @@ class _DriverEvaluationReportScreenState extends State<DriverEvaluationReportScr
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(lang.translate('expenses'), style: const TextStyle(color: AppTheme.gray)),
+                              Text(lang.translate('expenses'), style: TextStyle(color: AppTheme.gray)),
                               Text('TSh ${displayExpense.toStringAsFixed(0)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
                             ],
                           ),
@@ -232,7 +232,7 @@ class _DriverEvaluationReportScreenState extends State<DriverEvaluationReportScr
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(lang.translate('net_balance'), style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy)),
+                              Text(lang.translate('net_balance'), style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy)),
                               Text(
                                 'TSh ${netBalance.toStringAsFixed(0)}',
                                 style: TextStyle(fontWeight: FontWeight.bold, color: netBalance >= 0 ? Colors.green : Colors.red, fontSize: 16),
@@ -297,7 +297,7 @@ class _DriverEvaluationReportScreenState extends State<DriverEvaluationReportScr
                         children: [
                           Text(
                             lang.translate('eval_credit_tips') ?? 'Loan Qualification Tips',
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.navy),
                           ),
                           const SizedBox(height: 12),
                           _bulletTip(lang.translate('eval_tip_1') ?? 'Scan your QR code for every fuel fill to log activity.'),
@@ -321,12 +321,12 @@ class _DriverEvaluationReportScreenState extends State<DriverEvaluationReportScr
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.star, size: 16, color: AppTheme.gold),
+          Icon(Icons.star, size: 16, color: AppTheme.gold),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(fontSize: 13, color: AppTheme.navy),
+              style: TextStyle(fontSize: 13, color: AppTheme.navy),
             ),
           ),
         ],

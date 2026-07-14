@@ -11,7 +11,11 @@ class AuthProvider extends ChangeNotifier {
   User? _user;
   String? _error;
 
-  AuthProvider(this._authService);
+  AuthProvider(this._authService) {
+    _authService.api.onUnauthorized = () {
+      logout();
+    };
+  }
 
   AuthStatus get status => _status;
   User? get user => _user;

@@ -64,6 +64,9 @@ class CashflowProvider extends ChangeNotifier {
   }
 
   void setApi(ApiService api) {
+    // Idempotent: only (re)sync when the API instance actually changes.
+    // Prevents repeated /driver/cashflow fetches if setApi is called again.
+    if (identical(_api, api)) return;
     _api = api;
     fetchAndSync();
   }

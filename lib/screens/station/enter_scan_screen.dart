@@ -104,7 +104,7 @@ class _EnterScanScreenState extends State<EnterScanScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Weka lita na kiasi cha TSh',
               style: TextStyle(fontSize: 14, color: AppTheme.gray),
             ),
@@ -122,7 +122,7 @@ class _EnterScanScreenState extends State<EnterScanScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('QR Token', style: TextStyle(color: AppTheme.gray, fontSize: 13)),
+                      Text('QR Token', style: TextStyle(color: AppTheme.gray, fontSize: 13)),
                       Text(
                         _qrToken?.substring(0, 16) ?? '',
                         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
@@ -171,7 +171,7 @@ class _EnterScanScreenState extends State<EnterScanScreen> {
               child: ElevatedButton(
                 onPressed: _submitting ? null : _submit,
                 child: _submitting
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(

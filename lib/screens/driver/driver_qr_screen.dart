@@ -15,12 +15,12 @@ class DriverQrScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('My QR Code')),
       body: Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
+              Text(
                 'Show this QR at fuel stations',
                 style: TextStyle(fontSize: 16, color: AppTheme.navy),
               ),
@@ -28,7 +28,7 @@ class DriverQrScreen extends StatelessWidget {
               Text(
                 'Station operators will scan to record your fuel purchase',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: AppTheme.gray),
+                style: TextStyle(fontSize: 13, color: AppTheme.gray),
               ),
               const SizedBox(height: 32),
               Container(
@@ -43,15 +43,6 @@ class DriverQrScreen extends StatelessWidget {
                   version: QrVersions.auto,
                   size: 220,
                   backgroundColor: AppTheme.white,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                user?.phone ?? '',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.navy,
                 ),
               ),
             ],

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 
@@ -15,6 +16,7 @@ class ApiService {
   String? _token;
   String? customSaccoId;
   String? customStationId;
+  VoidCallback? onUnauthorized;
 
   void setToken(String? token) {
     _token = token;
@@ -68,6 +70,7 @@ class ApiService {
     } catch (_) {}
 
     if (response.statusCode == 401) {
+      onUnauthorized?.call();
       throw ApiException('Session expired. Please login again.', statusCode: 401);
     }
 
@@ -82,6 +85,7 @@ class ApiService {
   Future<dynamic> get(String path) => request('GET', path);
   Future<dynamic> post(String path, {dynamic body}) => request('POST', path, body: body);
   Future<dynamic> put(String path, {dynamic body}) => request('PUT', path, body: body);
+  Future<dynamic> delete(String path) => request('DELETE', path);
 
   Future<dynamic> multipartRequest(
     String method,
@@ -121,6 +125,7 @@ class ApiService {
       } catch (_) {}
 
       if (response.statusCode == 401) {
+        onUnauthorized?.call();
         throw ApiException('Session expired. Please login again.', statusCode: 401);
       }
 

@@ -4,6 +4,20 @@ import '../../config/theme.dart';
 import '../../models/user.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/language_provider.dart';
+import '../../widgets/chapgo_logo.dart';
+
+// Fixed dark palette mirroring the Chapgo login prototype (Chapgo_Login.html)
+class _C {
+  static const dark = Color(0xFF061220);
+  static const navy = Color(0xFF0B1D2E);
+  static const gold = Color(0xFFD4A843);
+  static const green = Color(0xFF1B7A4A);
+  static const white = Color(0xFFF8F6F1);
+  static const grey = Color(0xFF8899AA);
+  static const greyLight = Color(0xFFB0BFCF);
+  static const card = Color(0x0AFFFFFF);
+  static const border = Color(0x1AFFFFFF);
+}
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,28 +26,22 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _LoginScreenState extends State<LoginScreen> {
   final _phoneController = TextEditingController();
-  final _emailController = TextEditingController();
+  final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  String _selectedCountryCode = '+255';
+  bool _usePassword = false; // false = OTP, true = password alternative
+  String _selectedRole = 'driver';
+  String _selectedVehicleType = 'bodaboda-petrol';
+  static const String _countryCode = '+255';
   OverlayEntry? _activeOverlay;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
 
   @override
   void dispose() {
     _activeOverlay?.remove();
-    _tabController.dispose();
     _phoneController.dispose();
-    _emailController.dispose();
+    _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -42,18 +50,12 @@ class _LoginScreenState extends State<LoginScreen>
     String raw = _phoneController.text.trim().replaceAll(RegExp(r'\s+'), '');
     if (raw.isEmpty) return '';
     if (raw.startsWith('+')) return raw;
-    String codeDigits = _selectedCountryCode.replaceFirst('+', '');
-    if (raw.startsWith(codeDigits)) return '+$raw';
-    if (raw.startsWith('0')) return _selectedCountryCode + raw.substring(1);
-    return _selectedCountryCode + raw;
+    if (raw.startsWith('255')) return '+$raw';
+    if (raw.startsWith('0')) return _countryCode + raw.substring(1);
+    return _countryCode + raw;
   }
 
-  bool _isValidPhone(String phone) {
-    if (phone.startsWith('+255')) {
-      return RegExp(r'^\+255\d{9}$').hasMatch(phone);
-    }
-    return RegExp(r'^\+\d{10,14}$').hasMatch(phone);
-  }
+  bool _isValidPhone(String phone) => RegExp(r'^\+255\d{9}$').hasMatch(phone);
 
   Future<void> _requestOtp() async {
     final lang = context.read<LanguageProvider>();
@@ -67,7 +69,8 @@ class _LoginScreenState extends State<LoginScreen>
     if (mounted) {
       if (auth.error == null) {
         _showNotification(lang.translate('otp_sent_success'), type: 'success');
-        Navigator.pushNamed(context, '/otp-verify', arguments: {'phone': phone});
+        Navigator.pushNamed(context, '/otp-verify',
+            arguments: {'phone': phone, 'role': _selectedRole, 'vehicle_type': _selectedVehicleType});
       } else {
         _showNotification(auth.error!, type: 'error');
       }
@@ -76,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   Future<void> _loginWithPassword() async {
     final lang = context.read<LanguageProvider>();
-    String credential = _emailController.text.trim();
+    String credential = _identifierController.text.trim();
     final password = _passwordController.text;
 
     if (credential.isEmpty || password.isEmpty) {
@@ -91,15 +94,14 @@ class _LoginScreenState extends State<LoginScreen>
       } else if (raw.startsWith('255')) {
         credential = '+$raw';
       } else if (raw.startsWith('0')) {
-        credential = '+255' + raw.substring(1);
+        credential = '+255${raw.substring(1)}';
       } else if (RegExp(r'^\d+$').hasMatch(raw)) {
-        credential = '+255' + raw;
+        credential = '+255$raw';
       }
     }
 
     final auth = context.read<AuthProvider>();
     final success = await auth.login(credential, password);
-
     if (mounted) {
       if (success) {
         _showNotification(lang.translate('login_success'), type: 'success');
@@ -112,8 +114,8 @@ class _LoginScreenState extends State<LoginScreen>
 
   void _quickLogin(String username, String password) {
     setState(() {
-      _tabController.index = 1;
-      _emailController.text = username;
+      _usePassword = true;
+      _identifierController.text = username;
       _passwordController.text = password;
     });
     _loginWithPassword();
@@ -160,7 +162,6 @@ class _LoginScreenState extends State<LoginScreen>
     _activeOverlay?.remove();
     final overlay = Overlay.of(context);
     late OverlayEntry entry;
-
     entry = OverlayEntry(
       builder: (context) => Positioned(
         top: MediaQuery.of(context).padding.top + 20,
@@ -175,21 +176,13 @@ class _LoginScreenState extends State<LoginScreen>
               decoration: BoxDecoration(
                 color: bgColor,
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(color: bgColor.withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 4)),
-                ],
+                boxShadow: [BoxShadow(color: bgColor.withValues(alpha: 0.4), blurRadius: 12, offset: const Offset(0, 4))],
               ),
               child: Row(
                 children: [
                   Icon(icon, color: Colors.white),
                   const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      message,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
+                  Expanded(child: Text(message, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600))),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.white, size: 18),
                     padding: EdgeInsets.zero,
@@ -208,10 +201,8 @@ class _LoginScreenState extends State<LoginScreen>
         ),
       ),
     );
-
     _activeOverlay = entry;
     overlay.insert(entry);
-
     Future.delayed(const Duration(seconds: 4), () {
       if (entry.mounted) {
         entry.remove();
@@ -223,243 +214,242 @@ class _LoginScreenState extends State<LoginScreen>
   @override
   Widget build(BuildContext context) {
     final lang = context.watch<LanguageProvider>();
+    final en = lang.locale == 'en';
+    final auth = context.watch<AuthProvider>();
+
+    if (auth.status == AuthStatus.authenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _routeToDashboard(auth.user?.userRole);
+      });
+      return const Scaffold(
+        backgroundColor: _C.dark,
+        body: Center(child: CircularProgressIndicator(color: _C.gold)),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: AppTheme.bg,
-      body: Column(
-        children: [
-          // ─── Gradient Header ──────────────────────────
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 32,
-              bottom: 36,
-              left: 24,
-              right: 24,
-            ),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF0F172A), Color(0xFF1E3A5F)],
-              ),
-            ),
-            child: Column(
-              children: [
-                // Language toggle
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        final newLocale = lang.locale == 'en' ? 'sw' : 'en';
-                        lang.setLocale(newLocale);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.language, color: Colors.white, size: 14),
-                            const SizedBox(width: 6),
-                            Text(
-                              lang.locale == 'en' ? 'Kiswahili' : 'English',
+      backgroundColor: _C.dark,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: Column(
+                children: [
+                  // Top row: lang toggle
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      GestureDetector(
+                        onTap: () => lang.setLocale(en ? 'sw' : 'en'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: _C.border),
+                          ),
+                          child: Text(en ? 'SW' : 'EN',
                               style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
+                                  color: _C.greyLight, fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: 1)),
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // Logo
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [AppTheme.gold, AppTheme.goldDark],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.gold.withValues(alpha: 0.4),
-                        blurRadius: 20,
-                        spreadRadius: 2,
                       ),
                     ],
                   ),
-                  child: const Center(
-                    child: Icon(Icons.motorcycle, size: 36, color: Colors.white),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                const Text(
-                  'Chapgo',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Zamunda Holdings Limited',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white.withValues(alpha: 0.55),
-                  ),
-                ),
-              ],
-            ),
-          ),
+                  const SizedBox(height: 24),
 
-          // ─── Form Body ────────────────────────────────
-          Expanded(
-            child: SingleChildScrollView(
-              child: Center(
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 500),
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Tab switcher
-                      Container(
-                        decoration: BoxDecoration(
-                          color: AppTheme.surfaceVariant,
-                          borderRadius: BorderRadius.circular(12),
+                  // Logo block
+                  const ChapgoLogo(scale: 0.85, showSubtitle: false),
+                  const SizedBox(height: 22),
+
+                  // Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(22),
+                    decoration: BoxDecoration(
+                      color: _C.navy,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _C.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(en ? 'Sign In' : 'Ingia',
+                            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: _C.white)),
+                        const SizedBox(height: 4),
+                        Text(
+                          _usePassword
+                              ? (en ? 'Sign in with your password' : 'Ingia kwa nenosiri lako')
+                              : (en ? 'Enter your registered phone number' : 'Weka namba yako ya simu iliyosajiliwa'),
+                          style: const TextStyle(fontSize: 13, color: _C.grey),
                         ),
-                        padding: const EdgeInsets.all(4),
-                        child: TabBar(
-                          controller: _tabController,
-                          labelColor: Colors.white,
-                          unselectedLabelColor: AppTheme.gray,
-                          indicatorSize: TabBarIndicatorSize.tab,
-                          indicator: BoxDecoration(
-                            color: AppTheme.navy,
-                            borderRadius: BorderRadius.circular(9),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.navy.withValues(alpha: 0.3),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
+                        const SizedBox(height: 20),
+
+                        // Credential inputs
+                        if (_usePassword) ...[
+                          _label(en ? 'Phone or Email' : 'Simu au Barua pepe'),
+                          const SizedBox(height: 6),
+                          _darkField(_identifierController,
+                              hint: en ? '+2557… or you@email.com' : '+2557… au wewe@barua.com',
+                              keyboard: TextInputType.text),
+                          const SizedBox(height: 14),
+                          _label(en ? 'Password' : 'Nenosiri'),
+                          const SizedBox(height: 6),
+                          _darkField(_passwordController,
+                              hint: '••••••••',
+                              obscure: _obscurePassword,
+                              suffix: IconButton(
+                                icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                    color: _C.grey, size: 20),
+                                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                              )),
+                        ] else ...[
+                          _label(en ? 'Phone Number' : 'Namba ya Simu'),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 15),
+                                decoration: BoxDecoration(
+                                  color: _C.card,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: _C.border),
+                                ),
+                                child: const Text('+255',
+                                    style: TextStyle(color: _C.white, fontWeight: FontWeight.w700)),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _darkField(_phoneController,
+                                    hint: '7XX XXX XXX', keyboard: TextInputType.phone),
                               ),
                             ],
                           ),
-                          dividerColor: Colors.transparent,
-                          labelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-                          tabs: [
-                            Tab(text: lang.translate('phone_number_tab')),
-                            Tab(text: lang.translate('password_tab')),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
+                        ],
+                        const SizedBox(height: 20),
 
-                      SizedBox(
-                        height: 280,
-                        child: TabBarView(
-                          controller: _tabController,
-                          children: [
-                            _phoneTab(lang),
-                            _emailTab(lang),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-                      Center(
-                        child: TextButton(
-                          onPressed: () => Navigator.pushNamed(context, '/register'),
-                          child: RichText(
-                            text: TextSpan(
-                              style: TextStyle(fontSize: 14, color: AppTheme.gray),
-                              children: [
-                                TextSpan(text: lang.translate('no_account')),
-                                TextSpan(
-                                  text: lang.translate('register_now'),
-                                  style: const TextStyle(
-                                    color: AppTheme.navy,
-                                    fontWeight: FontWeight.w700,
-                                    decoration: TextDecoration.underline,
-                                  ),
+                        // Primary button
+                        Consumer<AuthProvider>(
+                          builder: (context, auth, _) {
+                            final loading = auth.status == AuthStatus.loading;
+                            return SizedBox(
+                              width: double.infinity,
+                              height: 52,
+                              child: ElevatedButton(
+                                onPressed: loading ? null : (_usePassword ? _loginWithPassword : _requestOtp),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _C.gold,
+                                  foregroundColor: _C.dark,
+                                  disabledBackgroundColor: _C.gold.withValues(alpha: 0.5),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
-                              ],
+                                child: loading
+                                    ? const SizedBox(
+                                        width: 20, height: 20,
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: _C.dark))
+                                    : Text(
+                                        _usePassword
+                                            ? (en ? 'Sign In' : 'Ingia')
+                                            : (en ? 'Send OTP' : 'Tuma OTP'),
+                                        style: const TextStyle(fontWeight: FontWeight.w700, color: _C.dark, fontSize: 16)),
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Toggle OTP <-> Password
+                        Center(
+                          child: TextButton(
+                            onPressed: () => setState(() => _usePassword = !_usePassword),
+                            child: Text(
+                              _usePassword
+                                  ? (en ? 'Use OTP instead' : 'Tumia OTP badala yake')
+                                  : (en ? 'Use password instead' : 'Tumia nenosiri badala yake'),
+                              style: const TextStyle(color: _C.gold, fontWeight: FontWeight.w600, fontSize: 13),
                             ),
                           ),
                         ),
-                      ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
 
-                      const SizedBox(height: 8),
-                      const Divider(),
-                      const SizedBox(height: 12),
-
-                      // Demo quick login
-                      const Center(
-                        child: Text(
-                          'DEMO QUICK LOGIN',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.grayLight,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        alignment: WrapAlignment.center,
+                  // Register link
+                  TextButton(
+                    onPressed: () => Navigator.pushNamed(context, '/register'),
+                    child: RichText(
+                      text: TextSpan(
+                        style: const TextStyle(fontSize: 14, color: _C.grey),
                         children: [
-                          _quickLoginChip(
-                            'Super Admin',
-                            Icons.shield,
-                            const Color(0xFF7C3AED),
-                            () => _quickLogin('admin@zamunda.co.tz', 'password'),
-                          ),
-                          _quickLoginChip(
-                            'SACCO Admin',
-                            Icons.business,
-                            AppTheme.accent,
-                            () => _quickLogin('+255756000001', 'password'),
-                          ),
-                          _quickLoginChip(
-                            'Station Op.',
-                            Icons.local_gas_station,
-                            AppTheme.teal,
-                            () => _quickLogin('+255756000002', 'password'),
-                          ),
-                          _quickLoginChip(
-                            'Driver',
-                            Icons.motorcycle,
-                            AppTheme.gold,
-                            () => _quickLogin('+255711000001', 'password'),
+                          TextSpan(text: lang.translate('no_account')),
+                          TextSpan(
+                            text: lang.translate('register_now'),
+                            style: const TextStyle(color: _C.gold, fontWeight: FontWeight.w700),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Demo quick login
+                  Container(height: 1, color: _C.border),
+                  const SizedBox(height: 14),
+                  Text(en ? 'DEMO QUICK LOGIN' : 'INGIA HARAKA (DEMO)',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _C.grey, letterSpacing: 1.5)),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.center,
+                    children: [
+                      _quickLoginChip('Super Admin', Icons.shield, const Color(0xFF8B5CF6),
+                          () => _quickLogin('admin@zamunda.co.tz', 'password')),
+                      _quickLoginChip('SACCO Admin', Icons.business, AppTheme.accent,
+                          () => _quickLogin('+255756000001', 'password')),
+                      _quickLoginChip('Station Op.', Icons.local_gas_station, AppTheme.teal,
+                          () => _quickLogin('+255756000002', 'password')),
+                      _quickLoginChip('Driver', Icons.motorcycle, _C.gold,
+                          () => _quickLogin('+255711000001', 'password')),
                     ],
                   ),
-                ),
+                  const SizedBox(height: 20),
+                  const Text('CHAPGO · Phase 1 Pilot',
+                      style: TextStyle(fontSize: 10, color: _C.grey, letterSpacing: 1)),
+                  const SizedBox(height: 12),
+                ],
               ),
             ),
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _label(String text) =>
+      Text(text, style: const TextStyle(fontSize: 12, color: _C.greyLight, fontWeight: FontWeight.w600));
+
+  Widget _darkField(TextEditingController controller,
+      {String? hint, bool obscure = false, TextInputType? keyboard, Widget? suffix}) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      keyboardType: keyboard,
+      style: const TextStyle(color: _C.white, fontWeight: FontWeight.w600),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: const TextStyle(color: _C.grey),
+        filled: true,
+        fillColor: _C.card,
+        suffixIcon: suffix,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _C.border)),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _C.gold, width: 1.5)),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _C.border)),
       ),
     );
   }
@@ -470,160 +460,19 @@ class _LoginScreenState extends State<LoginScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
+          color: color.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(50),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.4)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 15, color: color),
             const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: color,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            Text(label, style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w600)),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _phoneTab(LanguageProvider lang) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          lang.translate('login_with_otp'),
-          style: AppTheme.headingMedium,
-        ),
-        const SizedBox(height: 4),
-        Text(lang.translate('otp_sms_note'),
-            style: const TextStyle(fontSize: 13, color: AppTheme.gray)),
-        const SizedBox(height: 20),
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceVariant,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.border, width: 1.5),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedCountryCode,
-                  items: const [
-                    DropdownMenuItem(value: '+255', child: Text('🇹🇿 +255')),
-                    DropdownMenuItem(value: '+254', child: Text('🇰🇪 +254')),
-                    DropdownMenuItem(value: '+256', child: Text('🇺🇬 +256')),
-                    DropdownMenuItem(value: '+250', child: Text('🇷🇼 +250')),
-                  ],
-                  onChanged: (v) => setState(() => _selectedCountryCode = v ?? '+255'),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: TextField(
-                controller: _phoneController,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  labelText: lang.translate('phone_field'),
-                  hintText: lang.translate('phone_hint'),
-                  prefixIcon: const Icon(Icons.phone_outlined, size: 20),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        Consumer<AuthProvider>(
-          builder: (context, auth, _) => SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              onPressed: auth.status == AuthStatus.loading ? null : _requestOtp,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.navy,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: auth.status == AuthStatus.loading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.white),
-                    )
-                  : Text(lang.translate('send_otp')),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _emailTab(LanguageProvider lang) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(lang.translate('login_with_password'), style: AppTheme.headingMedium),
-        const SizedBox(height: 4),
-        Text(lang.translate('password_login_note'),
-            style: const TextStyle(fontSize: 13, color: AppTheme.gray)),
-        const SizedBox(height: 20),
-        TextField(
-          controller: _emailController,
-          keyboardType: TextInputType.emailAddress,
-          decoration: InputDecoration(
-            labelText: lang.translate('email_phone_field'),
-            hintText: lang.translate('email_phone_hint'),
-            prefixIcon: const Icon(Icons.person_outline, size: 20),
-          ),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _passwordController,
-          obscureText: _obscurePassword,
-          decoration: InputDecoration(
-            labelText: lang.translate('password_field'),
-            hintText: '••••••••••••',
-            prefixIcon: const Icon(Icons.lock_outline, size: 20),
-            suffixIcon: IconButton(
-              icon: Icon(
-                _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                color: AppTheme.gray,
-                size: 20,
-              ),
-              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        Consumer<AuthProvider>(
-          builder: (context, auth, _) => SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              onPressed: auth.status == AuthStatus.loading ? null : _loginWithPassword,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.navy,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              child: auth.status == AuthStatus.loading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.white),
-                    )
-                  : Text(lang.translate('login_btn')),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

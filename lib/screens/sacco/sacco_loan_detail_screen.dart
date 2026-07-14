@@ -259,7 +259,7 @@ class _SaccoLoanDetailScreenState extends State<SaccoLoanDetailScreen> {
                             : (lang.locale == 'en'
                                 ? 'Are you sure you want to reject this loan application?'
                                 : 'Je, una uhakika unataka kukataa ombi hili la mkopo?'),
-                        style: const TextStyle(fontSize: 14, color: AppTheme.navy),
+                        style: TextStyle(fontSize: 14, color: AppTheme.navy),
                       ),
                       const SizedBox(height: 16),
                       if (isApprove) ...[
@@ -453,7 +453,7 @@ class _SaccoLoanDetailScreenState extends State<SaccoLoanDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(lang.locale == 'en' ? 'Loan Details' : 'Maelezo ya Mkopo'),
-        backgroundColor: AppTheme.navy,
+        backgroundColor: AppTheme.green,
       ),
       body: Center(
         child: Container(
@@ -473,7 +473,7 @@ class _SaccoLoanDetailScreenState extends State<SaccoLoanDetailScreen> {
                         children: [
                           Text(
                             driverName,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.navy),
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.navy),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -489,10 +489,10 @@ class _SaccoLoanDetailScreenState extends State<SaccoLoanDetailScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('${lang.locale == "en" ? "Phone" : "Simu"}: $phone', style: const TextStyle(color: AppTheme.gray)),
+                          Text('${lang.locale == "en" ? "Phone" : "Simu"}: $phone', style: TextStyle(color: AppTheme.gray)),
                           Text(
                             '${lang.translate("boda_score")}: ${score.toStringAsFixed(0)} (${tier.toUpperCase()})',
-                            style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.gold),
+                            style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.gold),
                           ),
                         ],
                       ),
@@ -512,7 +512,7 @@ class _SaccoLoanDetailScreenState extends State<SaccoLoanDetailScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          Text(
                             'Spec / Maelezo',
                             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
                           ),
@@ -556,7 +556,7 @@ class _SaccoLoanDetailScreenState extends State<SaccoLoanDetailScreen> {
                         children: [
                           Text(
                             lang.translate('missed_payments'),
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
                           ),
                           const SizedBox(height: 4),
                           Row(
@@ -603,7 +603,7 @@ class _SaccoLoanDetailScreenState extends State<SaccoLoanDetailScreen> {
                     children: [
                       Text(
                         lang.translate('history_repayment'),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
                       ),
                       const Divider(height: 24),
                       if (_loadingRepayments)
@@ -706,7 +706,7 @@ class _SaccoLoanDetailScreenState extends State<SaccoLoanDetailScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppTheme.gray)),
+          Text(label, style: TextStyle(color: AppTheme.gray)),
           Text(
             value,
             style: TextStyle(

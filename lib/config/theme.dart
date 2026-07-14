@@ -1,129 +1,149 @@
 import 'package:flutter/material.dart';
 
+// ============================================================
+// THEME MODE
+// Both palettes below resolve their colors at runtime based on
+// [ThemeState.isDark], so a single toggle recolors the whole app.
+// Call ThemeState.setDark(bool) then rebuild the widget tree.
+// ============================================================
+class ThemeState {
+  static bool isDark = true;
+  static void setDark(bool v) => isDark = v;
+  static Color _c(int dark, int light) => Color(isDark ? dark : light);
+}
+
+/// Driver dark/light palette (mirrors the Chapgo HTML prototype in dark mode,
+/// with a matching light variant).
+class DriverDark {
+  static Color get dark        => ThemeState._c(0xFF061220, 0xFFEFF3F8); // app background
+  static Color get navy        => ThemeState._c(0xFF0B1D2E, 0xFFFFFFFF); // nav/surfaces
+  static Color get gold        => const Color(0xFFD4A843);
+  static Color get green       => const Color(0xFF1B7A4A);
+  static Color get greenLight  => ThemeState._c(0xFF24A060, 0xFF178A4E);
+  static Color get red         => const Color(0xFFC0392B);
+  static Color get white       => ThemeState._c(0xFFF8F6F1, 0xFF0B1D2E); // PRIMARY TEXT
+  static Color get grey        => ThemeState._c(0xFF8899AA, 0xFF5B6B7B); // secondary text
+  static Color get greyLight   => ThemeState._c(0xFFB0BFCF, 0xFF8595A5);
+  static Color get card        => ThemeState._c(0x0AFFFFFF, 0x07000000);
+  static Color get cardBorder  => ThemeState._c(0x14FFFFFF, 0x16000000);
+  static Color get cardSurface => ThemeState._c(0xFF0E2233, 0xFFFFFFFF);
+
+  static Color tierColor(String tier) {
+    switch (tier.toLowerCase()) {
+      case 'platinum': return const Color(0xFF7FD4E0);
+      case 'gold':     return gold;
+      case 'silver':   return greyLight;
+      case 'bronze':   return const Color(0xFFCD7F32);
+      default:         return grey;
+    }
+  }
+
+  static BoxDecoration cardDeco({Color? borderColor, Color? fill}) => BoxDecoration(
+        color: fill ?? card,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor ?? cardBorder),
+      );
+}
+
 class AppTheme {
-  // ─── Brand Palette ─────────────────────────────────────
-  static const Color navy     = Color(0xFF0F172A); // slate-900
-  static const Color navyLight= Color(0xFF1E293B); // slate-800
-  static const Color navyMid  = Color(0xFF334155); // slate-700
-  static const Color navyDark = Color(0xFF0A0F1C);
+  // ----- Brand Palette (dynamic) -----
+  // `navy` is the PRIMARY FOREGROUND (text/icons): light on dark, dark on light.
+  static Color get navy      => ThemeState._c(0xFFE8EEF5, 0xFF0F172A);
+  static Color get navyLight => ThemeState._c(0xFF13283B, 0xFFE8EEF2);
+  static Color get navyMid   => ThemeState._c(0xFF0E2233, 0xFFFFFFFF);
+  static Color get navyDark  => ThemeState._c(0xFF061220, 0xFFF8FAFC);
 
-  static const Color gold     = Color(0xFFF59E0B); // amber-500
-  static const Color goldLight= Color(0xFFFBBF24); // amber-400
-  static const Color goldDark = Color(0xFFD97706); // amber-600
+  static Color get gold      => const Color(0xFFF59E0B);
+  static Color get goldLight => const Color(0xFFFBBF24);
+  static Color get goldDark  => const Color(0xFFD97706);
 
-  static const Color accent   = Color(0xFF3B82F6); // blue-500
-  static const Color accentLight = Color(0xFF60A5FA); // blue-400
+  static Color get accent      => const Color(0xFF3B82F6);
+  static Color get accentLight => const Color(0xFF60A5FA);
 
-  static const Color green    = Color(0xFF10B981); // emerald-500
-  static const Color greenLight = Color(0xFF34D399); // emerald-400
-  static const Color red      = Color(0xFFEF4444); // red-500
-  static const Color redLight = Color(0xFFFCA5A5); // red-300
-  static const Color orange   = Color(0xFFF97316); // orange-500
-  static const Color teal     = Color(0xFF14B8A6); // teal-500
-  static const Color purple   = Color(0xFF8B5CF6); // violet-500
+  static Color get green      => const Color(0xFF10B981);
+  static Color get greenLight => const Color(0xFF34D399);
+  static Color get red        => const Color(0xFFEF4444);
+  static Color get redLight   => const Color(0xFFFCA5A5);
+  static Color get orange     => const Color(0xFFF97316);
+  static Color get teal       => const Color(0xFF14B8A6);
+  static Color get purple     => const Color(0xFF8B5CF6);
 
-  // ─── Neutral / Surface ──────────────────────────────────
-  static const Color bg       = Color(0xFFF8FAFC); // slate-50
-  static const Color surface  = Color(0xFFFFFFFF);
-  static const Color surfaceVariant = Color(0xFFF1F5F9); // slate-100
-  static const Color border   = Color(0xFFE2E8F0); // slate-200
-  static const Color gray     = Color(0xFF64748B); // slate-500
-  static const Color grayLight= Color(0xFF94A3B8); // slate-400
-  static const Color white    = Color(0xFFFFFFFF);
+  // ----- Neutral / Surface (dynamic) -----
+  static Color get bg             => ThemeState._c(0xFF061220, 0xFFF8FAFC);
+  static Color get surface        => ThemeState._c(0xFF0E2233, 0xFFFFFFFF);
+  static Color get surfaceVariant => ThemeState._c(0xFF13283B, 0xFFF1F5F9);
+  static Color get border         => ThemeState._c(0x1AFFFFFF, 0xFFE2E8F0);
+  static Color get gray           => ThemeState._c(0xFF9AAABB, 0xFF64748B);
+  static Color get grayLight      => ThemeState._c(0xFF74879B, 0xFF94A3B8);
+  static Color get white          => const Color(0xFFF8FAFC);
 
-  // ─── Semantic aliases (keep old names for compatibility) ─
-  static const Color cream    = Color(0xFFF8FAFC);
-  static const Color soft     = Color(0xFFF1F5F9);
+  static Color get cream => bg;
+  static Color get soft  => surfaceVariant;
 
-  // ─── Text Styles ────────────────────────────────────────
-  static const TextStyle headingLarge = TextStyle(
-    fontSize: 24, fontWeight: FontWeight.w700,
-    color: navy, letterSpacing: -0.5,
-  );
-  static const TextStyle headingMedium = TextStyle(
-    fontSize: 18, fontWeight: FontWeight.w700, color: navy,
-  );
-  static const TextStyle headingSmall = TextStyle(
-    fontSize: 14, fontWeight: FontWeight.w600, color: navy,
-  );
-  static const TextStyle labelStyle = TextStyle(
-    fontSize: 11, fontWeight: FontWeight.w600,
-    color: gray, letterSpacing: 0.5,
-  );
-  static const TextStyle valueStyle = TextStyle(
-    fontSize: 20, fontWeight: FontWeight.w800, color: navy,
-  );
+  // ----- Text Styles (dynamic) -----
+  static TextStyle get headingLarge =>
+      TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: navy, letterSpacing: -0.5);
+  static TextStyle get headingMedium =>
+      TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: navy);
+  static TextStyle get headingSmall =>
+      TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: navy);
+  static TextStyle get labelStyle =>
+      TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: gray, letterSpacing: 0.5);
+  static TextStyle get valueStyle =>
+      TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: navy);
 
-  // ─── Card Decoration ────────────────────────────────────
-  static BoxDecoration cardDecoration({
-    Color color = surface,
-    double radius = 16,
-    bool withShadow = true,
-  }) =>
+  // ----- Decorations -----
+  static BoxDecoration cardDecoration({Color? color, double radius = 16, bool withShadow = true}) =>
       BoxDecoration(
-        color: color,
+        color: color ?? surface,
         borderRadius: BorderRadius.circular(radius),
         boxShadow: withShadow
-            ? [
-                BoxShadow(
-                  color: navy.withValues(alpha: 0.07),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ]
+            ? [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 12, offset: const Offset(0, 4))]
             : null,
       );
 
-  // ─── Gradient Decoration ────────────────────────────────
-  static BoxDecoration gradientDecoration({
-    List<Color>? colors,
-    double radius = 20,
-  }) =>
-      BoxDecoration(
+  static BoxDecoration gradientDecoration({List<Color>? colors, double radius = 20}) => BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: colors ?? [navy, navyMid],
+          colors: colors ?? [surfaceVariant, surface],
         ),
         borderRadius: BorderRadius.circular(radius),
-        boxShadow: [
-          BoxShadow(
-            color: navy.withValues(alpha: 0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6))],
       );
 
-  // ─── Theme Data ─────────────────────────────────────────
-  static ThemeData get lightTheme {
+  // ----- Theme Data (rebuilt per mode) -----
+  static ThemeData get lightTheme => themeData;
+  static ThemeData get darkTheme => themeData;
+
+  static ThemeData get themeData {
+    final brightness = ThemeState.isDark ? Brightness.dark : Brightness.light;
+    final baseScheme = ThemeState.isDark ? const ColorScheme.dark() : const ColorScheme.light();
     return ThemeData(
       useMaterial3: true,
+      brightness: brightness,
       scaffoldBackgroundColor: bg,
-      colorScheme: ColorScheme.light(
-        primary: navy,
-        secondary: gold,
+      canvasColor: bg,
+      colorScheme: baseScheme.copyWith(
+        primary: gold,
+        secondary: green,
         error: red,
         surface: surface,
+        onSurface: navy,
         surfaceContainerHighest: surfaceVariant,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: navy,
-        foregroundColor: white,
+        backgroundColor: bg,
+        foregroundColor: navy,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: const TextStyle(
-          color: white,
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -0.3,
-        ),
-        iconTheme: const IconThemeData(color: white),
+        titleTextStyle: TextStyle(color: navy, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.3),
+        iconTheme: IconThemeData(color: navy),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: navy,
-          foregroundColor: white,
+          backgroundColor: green,
+          foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
@@ -133,7 +153,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: navy,
-          side: const BorderSide(color: navy, width: 1.5),
+          side: BorderSide(color: border, width: 1.5),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
@@ -143,39 +163,42 @@ class AppTheme {
         filled: true,
         fillColor: surfaceVariant,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: border, width: 1.5),
-        ),
+            borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: border, width: 1.5)),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: gold, width: 2),
-        ),
-        labelStyle: const TextStyle(color: gray, fontWeight: FontWeight.w500),
-        hintStyle: const TextStyle(color: grayLight),
+            borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: gold, width: 2)),
+        labelStyle: TextStyle(color: gray, fontWeight: FontWeight.w500),
+        hintStyle: TextStyle(color: grayLight),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
         color: surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: border, width: 1),
+          side: BorderSide(color: border, width: 1),
         ),
         margin: EdgeInsets.zero,
       ),
-      dividerTheme: const DividerThemeData(color: border, thickness: 1),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: surface,
-        selectedItemColor: navy,
-        unselectedItemColor: grayLight,
+      dividerTheme: DividerThemeData(color: border, thickness: 1),
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: navyMid,
+        selectedItemColor: gold,
+        unselectedItemColor: gray,
         elevation: 0,
         type: BottomNavigationBarType.fixed,
-        selectedLabelStyle: TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
-        unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
+        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 11),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
+      ),
+      drawerTheme: DrawerThemeData(backgroundColor: surface),
+      dialogTheme: DialogThemeData(backgroundColor: surface),
+      bottomSheetTheme: BottomSheetThemeData(backgroundColor: surface),
+      popupMenuTheme: PopupMenuThemeData(color: surface),
+      textSelectionTheme: TextSelectionThemeData(cursorColor: gold, selectionHandleColor: gold),
+      listTileTheme: ListTileThemeData(iconColor: navy, textColor: navy),
+      iconTheme: IconThemeData(color: navy),
+      expansionTileTheme: ExpansionTileThemeData(
+        textColor: navy, collapsedTextColor: navy, iconColor: gold, collapsedIconColor: gray,
       ),
     );
   }

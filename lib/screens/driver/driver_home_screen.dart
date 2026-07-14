@@ -4,8 +4,19 @@ import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/language_provider.dart';
 import '../../providers/cashflow_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
-import '../../config/api_config.dart';
+import '../../widgets/theme_toggle_button.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'driver_widgets.dart';
+import 'driver_delivery_screen.dart';
+
+String fmtTsh(num v) {
+  final n = v.round();
+  if (n >= 1000000) return 'TZS ${(n / 1000000).toStringAsFixed(1)}M';
+  if (n >= 1000) return 'TZS ${(n / 1000).toStringAsFixed(n % 1000 == 0 ? 0 : 1)}K';
+  return 'TZS $n';
+}
 
 class DriverHomeScreen extends StatefulWidget {
   const DriverHomeScreen({super.key});
@@ -17,35 +28,30 @@ class DriverHomeScreen extends StatefulWidget {
 class _DriverHomeScreenState extends State<DriverHomeScreen> {
   int _currentIndex = 0;
   final _api = ApiService();
+  bool _loading = true;
+  bool _dataLoadedOnce = false;
+  bool _tabHandled = false;
+
+  // backend data
   double _score = 0;
   String _tier = 'unranked';
-  double _totalLoansValue = 0.0;
-  bool _loading = true;
-  bool _hasLoadedData = false;
-  bool _dataLoadedOnce = false;
-  List<dynamic> _loansList = [];
+  int _daysActive = 0;
+  int _totalScans = 0;
   Map<String, dynamic>? _eligibility;
+  Map<String, dynamic>? _profile;
+  List<dynamic> _scans = [];
+  Map<String, dynamic> _scanTotals = {};
+  int _unread = 0;
+  Map<String, dynamic>? _credit;
+  bool _creditLoading = false;
 
-  int _unreadNotificationsCount = 0;
-  String _dashboardDateFilter = 'today';
-
-  final _amountController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _customCategoryController = TextEditingController();
-  String _selectedType = 'expense';
-  String _selectedCategory = 'fuel';
-
-  final _incomeController = TextEditingController(text: '20000');
-  final _expenseController = TextEditingController(text: '8000');
-
-  double _parseNum(dynamic val) {
-    if (val == null) return 0.0;
-    if (val is num) return val.toDouble();
-    if (val is String) return double.tryParse(val) ?? 0.0;
-    return 0.0;
+  double _num(dynamic v) {
+    if (v == null) return 0;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString()) ?? 0;
   }
 
-  bool _tabHandled = false;
+  bool _cashflowApiSet = false;
 
   @override
   void didChangeDependencies() {
@@ -53,9 +59,16 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
     final user = context.read<AuthProvider>().user;
     if (user != null) {
       _api.setToken(user.token);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) context.read<CashflowProvider>().setApi(_api);
-      });
+      // Only wire the cashflow API once. didChangeDependencies fires on every
+      // CashflowProvider notifyListeners (the My Money tab watches it), so
+      // calling setApi()/fetchAndSync() here every time creates an infinite
+      // request loop against /driver/cashflow.
+      if (!_cashflowApiSet) {
+        _cashflowApiSet = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) context.read<CashflowProvider>().setApi(_api);
+        });
+      }
     }
     if (!_tabHandled) {
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
@@ -66,877 +79,373 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
     if (!_dataLoadedOnce) {
       _dataLoadedOnce = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _loadData();
-          _loadNotifications();
-        }
+        if (mounted) _loadData();
       });
     }
   }
 
-  @override
-  void dispose() {
-    _amountController.dispose();
-    _descriptionController.dispose();
-    _customCategoryController.dispose();
-    _incomeController.dispose();
-    _expenseController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadNotifications() async {
+  Future<void> _loadData({bool silent = false}) async {
+    if (!silent) setState(() => _loading = true);
     try {
-      final res = await _api.get('/driver/notifications');
-      final list = res['notifications'] as List? ?? [];
-      final unread = list.where((n) => n['is_read'] == 0 || n['is_read'] == false).length;
-      if (mounted) setState(() => _unreadNotificationsCount = unread);
-    } catch (e) {
-      debugPrint('Failed to load notifications: $e');
-    }
-  }
-
-  Future<void> _loadData({bool? silent}) async {
-    final bool isSilent = silent ?? _hasLoadedData;
-    if (!isSilent) {
-      setState(() => _loading = true);
-    }
+      final score = await _api.get('/scores/me');
+      if (mounted) {
+        _score = _num(score['score']);
+        _tier = score['tier'] as String? ?? 'unranked';
+        _daysActive = _num(score['days_active']).round();
+        _totalScans = _num(score['total_scans']).round();
+        _eligibility = score['loan_eligibility'] as Map<String, dynamic>?;
+      }
+    } catch (e) { debugPrint('score: $e'); }
     try {
-      final scoreRes = await _api.get('/scores/me');
-      if (mounted) {
-        setState(() {
-          _score = _parseNum(scoreRes['score']);
-          _tier = scoreRes['tier'] as String? ?? 'unranked';
-          _eligibility = scoreRes['loan_eligibility'] as Map<String, dynamic>?;
-        });
-      }
-
-      final loansRes = await _api.get('/loans/me');
-      List<dynamic> list = [];
-      if (loansRes is Map && loansRes['loans'] is List) {
-        list = loansRes['loans'];
-      } else if (loansRes is List) {
-        list = loansRes;
-      }
-      double total = 0.0;
-      for (var loan in list) {
-        if (loan['status'] == 'active' || loan['status'] == 'approved' || loan['status'] == 'disbursed') {
-          total += _parseNum(loan['amount_tsh']);
-        }
-      }
-      if (mounted) {
-        setState(() {
-          _loansList = list;
-          _totalLoansValue = total;
-          _hasLoadedData = true;
-        });
-      }
-    } catch (e) {
-      debugPrint('Failed to load backend score/loans: $e');
-    } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
-    }
-  }
-
-  bool _isTxInDateRange(DateTime txDate, String preset) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final txDay = DateTime(txDate.year, txDate.month, txDate.day);
-    switch (preset) {
-      case 'today':
-        return txDay == today;
-      case 'yesterday':
-        return txDay == today.subtract(const Duration(days: 1));
-      case 'weekly':
-        return !txDay.isBefore(today.subtract(const Duration(days: 7)));
-      case 'monthly':
-        return !txDay.isBefore(today.subtract(const Duration(days: 30)));
-      case '6months':
-        return !txDay.isBefore(today.subtract(const Duration(days: 180)));
-      case 'yearly':
-        return !txDay.isBefore(today.subtract(const Duration(days: 365)));
-      default:
-        return true;
-    }
-  }
-
-  void _addCashflowTransaction(LanguageProvider lang, CashflowProvider cashflow) async {
-    final amount = double.tryParse(_amountController.text.trim()) ?? 0.0;
-    final desc = _descriptionController.text.trim();
-    if (amount <= 0) {
-      _showSnackbar(lang.translate('error'), AppTheme.red);
-      return;
-    }
-    final categoryStr = _selectedCategory == 'other' && _customCategoryController.text.trim().isNotEmpty
-        ? _customCategoryController.text.trim()
-        : _selectedCategory;
-    await cashflow.addTransaction(type: _selectedType, amount: amount, category: categoryStr, description: desc);
-    _amountController.clear();
-    _descriptionController.clear();
-    _customCategoryController.clear();
-    _showSnackbar(lang.translate('success'), AppTheme.green);
-    setState(() => _currentIndex = 0);
-    _loadData(silent: true);
-  }
-
-  void _showSnackbar(String message, Color color) {
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: color,
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
+      _profile = await _api.get('/driver/profile') as Map<String, dynamic>?;
+    } catch (e) { debugPrint('profile: $e'); }
+    try {
+      final hist = await _api.get('/scans/my-history?days=30');
+      _scans = hist['scans'] as List? ?? [];
+      _scanTotals = (hist['totals'] as Map?)?.cast<String, dynamic>() ?? {};
+    } catch (e) { debugPrint('scans: $e'); }
+    try {
+      final notif = await _api.get('/driver/notifications');
+      final list = notif['notifications'] as List? ?? [];
+      _unread = list.where((n) => n['is_read'] == 0 || n['is_read'] == false).length;
+    } catch (e) { debugPrint('notif: $e'); }
+    if (mounted) setState(() => _loading = false);
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthProvider>().user;
     final lang = context.watch<LanguageProvider>();
-    final cashflow = context.watch<CashflowProvider>();
-
+    final user = context.watch<AuthProvider>().user;
+    context.watch<ThemeProvider>(); // rebuild + recolor on theme toggle
     return Scaffold(
-      backgroundColor: AppTheme.bg,
-      appBar: AppBar(
-        title: Text(lang.translate('driver_title')),
-        actions: [
-          TextButton(
-            onPressed: () {
-              final newLocale = lang.locale == 'en' ? 'sw' : 'en';
-              lang.setLocale(newLocale);
-            },
-            child: Text(
-              lang.locale == 'en' ? '🇹🇿 SW' : '🇬🇧 EN',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-          ),
-          RingingBell(
-            count: _unreadNotificationsCount,
-            onTap: () => Navigator.pushNamed(context, '/driver/notifications').then((_) => _loadNotifications()),
-          ),
-        ],
-      ),
-      drawer: _buildDrawer(user, lang),
+      backgroundColor: DriverDark.dark,
+      appBar: _appBar(lang),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: DriverDark.gold))
           : IndexedStack(
               index: _currentIndex,
               children: [
-                _buildDashboard(user, lang, cashflow),
-                _buildCashflowLogger(lang, cashflow),
-                _buildScoreTab(lang),
+                _buildHomeTab(lang),
+                _buildHistoryTab(lang),   // Scan (Today)
+                _buildMoneyTab(lang),
+                _buildCreditTab(lang),    // Credit (AI)
+                const DriverDeliveryView(),
+                _buildProfileTab(lang),
               ],
             ),
-      bottomNavigationBar: _buildBottomNav(lang),
+      floatingActionButton: _currentIndex == 1
+          ? FloatingActionButton(
+              onPressed: () {
+                final phone = _profile?['phone'] as String? ?? user?.phone ?? '';
+                _showQrCodeBottomSheet(lang, phone);
+              },
+              backgroundColor: DriverDark.gold,
+              foregroundColor: DriverDark.dark,
+              child: const Icon(Icons.qr_code_2),
+            )
+          : null,
+      bottomNavigationBar: _bottomNav(lang),
     );
   }
 
-  Widget _buildBottomNav(LanguageProvider lang) {
+  PreferredSizeWidget _appBar(LanguageProvider lang) {
+    return AppBar(
+      backgroundColor: DriverDark.dark,
+      foregroundColor: DriverDark.white,
+      elevation: 0,
+      titleSpacing: 16,
+      title: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(9),
+              gradient: LinearGradient(colors: [DriverDark.green, DriverDark.gold]),
+            ),
+            child: Text('C', style: TextStyle(fontWeight: FontWeight.w800, color: DriverDark.dark)),
+          ),
+          const SizedBox(width: 10),
+          Text('Chap',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: DriverDark.white)),
+          Text('go', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: DriverDark.gold)),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => lang.setLocale(lang.locale == 'en' ? 'sw' : 'en'),
+          child: Text(lang.locale == 'en' ? 'SW' : 'EN',
+              style: TextStyle(color: DriverDark.greyLight, fontWeight: FontWeight.bold, fontSize: 12)),
+        ),
+        const ThemeToggleButton(),
+        RingingBell(
+          count: _unread,
+          onTap: () => Navigator.pushNamed(context, '/driver/notifications').then((_) => _loadData(silent: true)),
+        ),
+        const SizedBox(width: 6),
+      ],
+    );
+  }
+
+  Widget _bottomNav(LanguageProvider lang) {
+    final items = [
+      [Icons.home_filled, lang.translate('nav_home')],
+      [Icons.qr_code_scanner, lang.translate('nav_scan')],
+      [Icons.account_balance_wallet, lang.translate('nav_money')],
+      [Icons.credit_score, lang.translate('nav_credit')],
+      [Icons.local_shipping, lang.translate('deliver')],
+      [Icons.person, lang.translate('nav_profile')],
+    ];
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.surface,
-        border: const Border(top: BorderSide(color: AppTheme.border, width: 1)),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.navy.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, -4),
-          ),
-        ],
+        color: DriverDark.navy,
+        border: Border(top: BorderSide(color: DriverDark.cardBorder)),
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 6),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _navItem(0, Icons.dashboard_outlined, Icons.dashboard, lang.translate('overview')),
-              _navItem(1, Icons.account_balance_wallet_outlined, Icons.account_balance_wallet,
-                  '${lang.translate('income')} / ${lang.translate('expenses')}'),
-              _navItem(2, Icons.trending_up_outlined, Icons.trending_up, lang.translate('boda_score')),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _navItem(int index, IconData icon, IconData activeIcon, String label) {
-    final isActive = _currentIndex == index;
-    return GestureDetector(
-      onTap: () => setState(() => _currentIndex = index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? AppTheme.navy.withValues(alpha: 0.08) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(isActive ? activeIcon : icon,
-                color: isActive ? AppTheme.navy : AppTheme.grayLight, size: 24),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                color: isActive ? AppTheme.navy : AppTheme.grayLight,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDrawer(user, LanguageProvider lang) {
-    return Drawer(
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 24,
-              bottom: 24,
-              left: 20,
-              right: 20,
-            ),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppTheme.navy, Color(0xFF1E3A5F)],
-              ),
-            ),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: AppTheme.gold,
-                  backgroundImage: user?.profileImageUrl != null
-                      ? NetworkImage('${ApiConfig.apiBase.replaceAll('/api/v1', '')}${user!.profileImageUrl}') as ImageProvider
-                      : null,
-                  child: user?.profileImageUrl == null
-                      ? Text(user?.initials ?? 'D',
-                          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white))
-                      : null,
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(user?.fullName ?? 'Driver',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                      const SizedBox(height: 2),
-                      Text(user?.phone ?? '',
-                          style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.6))),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              children: [
-                _drawerItem(Icons.dashboard, lang.translate('overview'), () {
-                  Navigator.pop(context);
-                  setState(() => _currentIndex = 0);
-                }),
-                const Divider(height: 1),
-                _drawerExpansion(Icons.account_balance, lang.translate('menu_sacco') ?? 'SACCO & Loans', [
-                  _drawerSubItem(Icons.add_circle_outline, lang.translate('menu_apply_loan') ?? 'Apply for Loan', () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, '/driver/loans').then((_) => _loadData(silent: true));
-                  }),
-                  _drawerSubItem(Icons.list_alt, lang.translate('menu_loan_list') ?? 'Loan List', () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, '/driver/loans/list');
-                  }),
-                ]),
-                const Divider(height: 1),
-                _drawerExpansion(Icons.local_gas_station, lang.translate('menu_stations') ?? 'Fuel Stations', [
-                  _drawerSubItem(Icons.map, lang.translate('menu_stations_map') ?? 'Live on Map', () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, '/driver/stations/map', arguments: {'tab': 0});
-                  }),
-                  _drawerSubItem(Icons.list, lang.translate('menu_stations_list') ?? 'List of Stations', () {
-                    Navigator.pop(context);
-                    Navigator.pushNamed(context, '/driver/stations/map', arguments: {'tab': 1});
-                  }),
-                ]),
-                const Divider(height: 1),
-                _drawerItem(Icons.assessment, lang.translate('menu_report') ?? 'Report & Evaluation', () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, '/driver/reports/evaluation');
-                }),
-                const Divider(height: 1),
-                _drawerItem(Icons.person, lang.translate('profile'), () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, '/driver/profile').then((_) => _loadData(silent: true));
-                }),
-                _drawerItem(Icons.qr_code, lang.translate('qr_code'), () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, '/driver/qr-code');
-                }),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          ListTile(
-            leading: Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppTheme.red.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.logout, color: AppTheme.red, size: 20),
-            ),
-            title: Text(lang.translate('sign_out'),
-                style: const TextStyle(color: AppTheme.red, fontWeight: FontWeight.w600)),
-            onTap: () async {
-              Navigator.pop(context);
-              await context.read<AuthProvider>().logout();
-              if (context.mounted) Navigator.pushNamedAndRemoveUntil(context, '/', (_) => false);
-            },
-          ),
-          const SizedBox(height: 16),
-        ],
-      ),
-    );
-  }
-
-  Widget _drawerItem(IconData icon, String label, VoidCallback onTap) {
-    return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: AppTheme.navy.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(icon, color: AppTheme.navy, size: 20),
-      ),
-      title: Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-      onTap: onTap,
-    );
-  }
-
-  Widget _drawerSubItem(IconData icon, String label, VoidCallback onTap) {
-    return ListTile(
-      contentPadding: const EdgeInsets.only(left: 56, right: 16),
-      leading: Icon(icon, color: AppTheme.gold, size: 18),
-      title: Text(label, style: const TextStyle(fontSize: 13, color: AppTheme.gray)),
-      dense: true,
-      onTap: onTap,
-    );
-  }
-
-  Widget _drawerExpansion(IconData icon, String label, List<Widget> children) {
-    return ExpansionTile(
-      leading: Container(
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: AppTheme.navy.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(icon, color: AppTheme.navy, size: 20),
-      ),
-      title: Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-      childrenPadding: EdgeInsets.zero,
-      children: children,
-    );
-  }
-
-  // ─── DASHBOARD TAB ───────────────────────────────────
-  Widget _buildDashboard(user, LanguageProvider lang, CashflowProvider cashflow) {
-    final filteredTxs = cashflow.transactions
-        .where((t) => _isTxInDateRange(t.date, _dashboardDateFilter))
-        .toList();
-    final double displayIncome =
-        filteredTxs.where((t) => t.type == 'income').fold(0.0, (sum, t) => sum + t.amount);
-    final double displayExpense =
-        filteredTxs.where((t) => t.type == 'expense').fold(0.0, (sum, t) => sum + t.amount);
-
-    return RefreshIndicator(
-      onRefresh: () async {
-        await _loadData(silent: true);
-        await _loadNotifications();
-      },
-      child: ListView(
-        padding: const EdgeInsets.all(0),
-        children: [
-          // ─── Hero Header ──────────────────────────────
-          Container(
-            margin: const EdgeInsets.all(0),
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [AppTheme.navy, Color(0xFF1E3A5F)],
-              ),
-            ),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 28,
-                      backgroundColor: AppTheme.gold,
-                      backgroundImage: user?.profileImageUrl != null
-                          ? NetworkImage('${ApiConfig.apiBase.replaceAll('/api/v1', '')}${user!.profileImageUrl}') as ImageProvider
-                          : null,
-                      child: user?.profileImageUrl == null
-                          ? Text(user?.initials ?? 'D',
-                              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white))
-                          : null,
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user?.fullName ?? 'Driver',
-                            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(user?.phone ?? '',
-                              style: TextStyle(fontSize: 12, color: Colors.white.withValues(alpha: 0.6))),
-                        ],
-                      ),
-                    ),
-                    // Tier badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: _tierColor(_tier).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: _tierColor(_tier).withValues(alpha: 0.5)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.star, size: 12, color: _tierColor(_tier)),
-                          const SizedBox(width: 4),
-                          Text(
-                            _tier.toUpperCase(),
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: _tierColor(_tier),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // Score mini bar
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            lang.translate('boda_score'),
-                            style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.6), fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: [
-                              Text(
-                                '${_score.round()}',
-                                style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w800, color: Colors.white),
-                              ),
-                              const Text('/100', style: TextStyle(fontSize: 14, color: Colors.white54)),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: (_score / 100).clamp(0.0, 1.0),
-                              backgroundColor: Colors.white.withValues(alpha: 0.15),
-                              valueColor: AlwaysStoppedAnimation<Color>(_tierColor(_tier)),
-                              minHeight: 6,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    // Quick actions column
-                    Column(
+            children: List.generate(items.length, (i) {
+              final active = _currentIndex == i;
+              return Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => setState(() => _currentIndex = i),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        _heroActionBtn(Icons.qr_code, lang.translate('qr_code'), () {
-                          Navigator.pushNamed(context, '/driver/qr-code');
-                        }),
-                        const SizedBox(height: 8),
-                        _heroActionBtn(Icons.person_outline, lang.translate('profile'), () {
-                          Navigator.pushNamed(context, '/driver/profile').then((_) => _loadData(silent: true));
-                        }),
+                        Icon(items[i][0] as IconData,
+                            size: 22, color: active ? DriverDark.gold : DriverDark.grey),
+                        const SizedBox(height: 3),
+                        Text(items[i][1] as String,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                                color: active ? DriverDark.gold : DriverDark.grey)),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ],
+              );
+            }),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════════════════
+  // TAB 0 — HOME
+  // ════════════════════════════════════════════════════════
+  Widget _buildHomeTab(LanguageProvider lang) {
+    final tierColor = DriverDark.tierColor(_tier);
+    final litres = _num(_scanTotals['total_liters']);
+    final spent = _num(_scanTotals['total_amount_tsh']);
+    final status = (_profile?['status'] as String?) ?? 'active';
+    final isActive = status == 'active';
+    final saccoName = _profile?['sacco_name'] as String?;
+    final saccoBalance = _num(_profile?['sacco_balance_tsh']);
+    final prequalPct = (_daysActive / 90).clamp(0.0, 1.0);
+    final eligible = _daysActive >= 90;
+
+    return RefreshIndicator(
+      color: DriverDark.gold,
+      backgroundColor: DriverDark.navy,
+      onRefresh: () => _loadData(silent: true),
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          // Score ring + info
+          GestureDetector(
+            onTap: () => Navigator.pushNamed(context, '/driver/score').then((_) => _loadData(silent: true)),
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Row(
+                children: [
+                  DScoreRing(
+                    value: _score / 1000,
+                    centerText: '${_score.round()}',
+                    maxText: '/ 1000',
+                    color: tierColor,
+                  ),
+                  const SizedBox(width: 18),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(lang.translate('boda_score'),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: DriverDark.white)),
+                        const SizedBox(height: 6),
+                        DBadge(text: '${_tier.toUpperCase()} TIER', color: tierColor),
+                        const SizedBox(height: 8),
+                        Text(
+                          '$_daysActive ${lang.translate('days_active_short').toLowerCase()} · $_totalScans ${lang.translate('scan_count_label').toLowerCase()}'
+                          '${saccoName != null ? '\nSACCO: $saccoName' : ''}',
+                          style: TextStyle(fontSize: 11, color: DriverDark.grey, height: 1.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Date filter
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(lang.translate('filter_date'),
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppTheme.navy)),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.surfaceVariant,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppTheme.border),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _dashboardDateFilter,
-                          isDense: true,
-                          onChanged: (val) { if (val != null) setState(() => _dashboardDateFilter = val); },
-                          items: [
-                            DropdownMenuItem(value: 'today', child: Text(lang.translate('preset_today'), style: const TextStyle(fontSize: 13))),
-                            DropdownMenuItem(value: 'yesterday', child: Text(lang.translate('preset_yesterday'), style: const TextStyle(fontSize: 13))),
-                            DropdownMenuItem(value: 'weekly', child: Text(lang.translate('preset_weekly'), style: const TextStyle(fontSize: 13))),
-                            DropdownMenuItem(value: 'monthly', child: Text(lang.translate('preset_monthly'), style: const TextStyle(fontSize: 13))),
-                            DropdownMenuItem(value: 'all', child: Text(lang.translate('preset_all'), style: const TextStyle(fontSize: 13))),
+                const SizedBox(height: 8),
+                DStatGrid(cards: [
+                  DStatCard(value: '$_daysActive', label: lang.translate('days_active_short'), valueColor: DriverDark.greenLight),
+                  DStatCard(value: '$_totalScans', label: lang.translate('scan_count_label'), valueColor: DriverDark.gold),
+                  DStatCard(value: '${litres.toStringAsFixed(0)}L', label: lang.translate('litres_30d')),
+                  DStatCard(value: fmtTsh(spent), label: lang.translate('fuel_spent_30d'), valueColor: DriverDark.greenLight),
+                ]),
+
+                // Status
+                DSectionHead(title: lang.translate('your_status')),
+                DCard(
+                  child: DListItem(
+                    emoji: isActive ? '✅' : '⏳',
+                    emojiBg: (isActive ? DriverDark.green : DriverDark.gold).withValues(alpha: 0.15),
+                    title: lang.translate('registration_complete'),
+                    meta: _profile?['chapgo_id'] as String? ?? '',
+                    trailing: DBadge(
+                      text: isActive ? lang.translate('account_active') : lang.translate('account_pending'),
+                      color: isActive ? DriverDark.greenLight : DriverDark.gold,
+                    ),
+                  ),
+                ),
+
+                // Loan pre-qualification
+                DSectionHead(title: lang.translate('financial_services')),
+                GestureDetector(
+                  onTap: () => Navigator.pushNamed(context, '/driver/loans').then((_) => _loadData(silent: true)),
+                  child: DCard(
+                    borderColor: DriverDark.gold.withValues(alpha: 0.2),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 38, height: 38, alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                  color: DriverDark.gold.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                              child: const Text('🏦', style: TextStyle(fontSize: 18)),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(lang.translate('loan_prequal'),
+                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: DriverDark.white)),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    eligible
+                                        ? lang.translate('eligible_now')
+                                        : '${90 - _daysActive} ${lang.translate('days_until_eligible')}',
+                                    style: TextStyle(fontSize: 12, color: DriverDark.grey),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.chevron_right, color: DriverDark.grey),
                           ],
                         ),
-                      ),
+                        const SizedBox(height: 12),
+                        DProgressBar(value: prequalPct, color: eligible ? DriverDark.greenLight : DriverDark.gold),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('$_daysActive / 90 ${lang.translate('days_active_short').toLowerCase()}',
+                                style: TextStyle(fontSize: 11, color: DriverDark.grey)),
+                            Text('${(prequalPct * 100).round()}% ${lang.translate('complete_label')}',
+                                style: TextStyle(fontSize: 11, color: DriverDark.grey)),
+                          ],
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Stat Cards
-                Row(
-                  children: [
-                    Expanded(child: _statCard(lang.translate('income'), 'TSh ${displayIncome.toStringAsFixed(0)}',
-                        AppTheme.green, Icons.arrow_downward,
-                        onTap: () => Navigator.pushNamed(context, '/driver/cashflow', arguments: {'tab': 'income'}))),
-                    const SizedBox(width: 12),
-                    Expanded(child: _statCard(lang.translate('expenses'), 'TSh ${displayExpense.toStringAsFixed(0)}',
-                        AppTheme.red, Icons.arrow_upward,
-                        onTap: () => Navigator.pushNamed(context, '/driver/cashflow', arguments: {'tab': 'expense'}))),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(child: _statCard(lang.translate('loans'), 'TSh ${_totalLoansValue.toStringAsFixed(0)}',
-                        AppTheme.orange, Icons.assignment_outlined,
-                        onTap: () => Navigator.pushNamed(context, '/driver/loans/list'))),
-                    const SizedBox(width: 12),
-                    Expanded(child: _statCard(lang.translate('boda_score'), '$_score',
-                        AppTheme.accent, Icons.trending_up,
-                        onTap: () => Navigator.pushNamed(context, '/driver/reports/evaluation'))),
-                  ],
-                ),
-
-                const SizedBox(height: 24),
-
-                // Recent transactions
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(lang.translate('recent_activities'),
-                        style: AppTheme.headingSmall),
-                    if (filteredTxs.length > 8)
-                      TextButton(
-                        onPressed: () => Navigator.pushNamed(context, '/driver/cashflow'),
-                        child: Text(lang.translate('view_more') ?? 'View All',
-                            style: const TextStyle(fontSize: 12, color: AppTheme.accent)),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-
-                if (filteredTxs.isEmpty)
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceVariant,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Column(
-                        children: [
-                          Icon(Icons.receipt_long_outlined, size: 36, color: AppTheme.grayLight),
-                          const SizedBox(height: 10),
-                          Text(lang.translate('no_activities'),
-                              style: const TextStyle(color: AppTheme.grayLight, fontStyle: FontStyle.italic)),
-                        ],
-                      ),
-                    ),
-                  )
-                else
-                  ...List.generate(filteredTxs.length.clamp(0, 8), (i) {
-                    final tx = filteredTxs[i];
-                    final isIncome = tx.type == 'income';
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: AppTheme.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppTheme.border),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: (isIncome ? AppTheme.green : AppTheme.red).withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Icon(
-                              isIncome ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
-                              color: isIncome ? AppTheme.green : AppTheme.red,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(lang.translate(tx.category),
-                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                                if (tx.description.isNotEmpty)
-                                  Text(tx.description,
-                                      style: const TextStyle(fontSize: 12, color: AppTheme.gray)),
-                              ],
-                            ),
-                          ),
-                          Text(
-                            '${isIncome ? "+" : "-"} TSh ${tx.amount.toStringAsFixed(0)}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w700,
-                              color: isIncome ? AppTheme.green : AppTheme.red,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _statCard(String label, String value, Color color, IconData icon, {VoidCallback? onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border(left: BorderSide(color: color, width: 3)),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.navy.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(icon, color: color, size: 16),
                 ),
-                if (onTap != null)
-                  Icon(Icons.chevron_right, size: 16, color: AppTheme.grayLight),
+
+                // Recent scans
+                DSectionHead(
+                  title: lang.translate('recent_scans'),
+                  actionLabel: lang.translate('see_all'),
+                  onAction: () => setState(() => _currentIndex = 1),
+                ),
+                DCard(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: _scans.isEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          child: Center(
+                            child: Text(lang.translate('no_scans_yet'),
+                                style: TextStyle(color: DriverDark.grey, fontStyle: FontStyle.italic)),
+                          ),
+                        )
+                      : Column(
+                          children: _scans.take(3).map((s) {
+                            return DListItem(
+                              emoji: '⛽',
+                              emojiBg: DriverDark.green.withValues(alpha: 0.12),
+                              title: s['station_name'] as String? ?? 'Station',
+                              meta: _fmtDate(s['scanned_at']),
+                              trailing: DTrailingValue(
+                                amount: '${_num(s['liters']).toStringAsFixed(1)}L',
+                                unit: fmtTsh(_num(s['amount_tsh'])),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                ),
+
+                // SACCO
+                if (saccoName != null) ...[
+                  const SizedBox(height: 16),
+                  DCard(
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 38, height: 38, alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                  color: DriverDark.green.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                              child: const Text('🏛️', style: TextStyle(fontSize: 18)),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(saccoName,
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: DriverDark.white)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            Expanded(child: _saccoMini(fmtTsh(saccoBalance), lang.translate('savings_balance'), DriverDark.white)),
+                            const SizedBox(width: 10),
+                            Expanded(child: _saccoMini(lang.translate('current'), lang.translate('dues_status'), DriverDark.greenLight)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 30),
               ],
-            ),
-            const SizedBox(height: 10),
-            Text(label, style: const TextStyle(fontSize: 11, color: AppTheme.gray, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 4),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(value, style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: color)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _heroActionBtn(IconData icon, String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 16, color: Colors.white),
-            const SizedBox(width: 6),
-            Text(label, style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.w600)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Color _tierColor(String tier) {
-    switch (tier.toLowerCase()) {
-      case 'platinum': return AppTheme.teal;
-      case 'gold': return AppTheme.gold;
-      case 'silver': return AppTheme.grayLight;
-      case 'bronze': return const Color(0xFFCD7F32);
-      default: return AppTheme.gray;
-    }
-  }
-
-  // ─── CASHFLOW LOGGER TAB ──────────────────────────────
-  Widget _buildCashflowLogger(LanguageProvider lang, CashflowProvider cashflow) {
-    final categories = _selectedType == 'income'
-        ? ['fare', 'other']
-        : ['fuel', 'maintenance', 'food', 'sacco', 'other'];
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            _selectedType == 'income' ? lang.translate('add_income') : lang.translate('add_expense'),
-            style: AppTheme.headingLarge,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            _selectedType == 'income'
-                ? (lang.locale == 'en' ? 'Record your earnings for the day' : 'Rekodi mapato yako ya siku')
-                : (lang.locale == 'en' ? 'Track your spending' : 'Fuatilia matumizi yako'),
-            style: const TextStyle(fontSize: 13, color: AppTheme.gray),
-          ),
-          const SizedBox(height: 20),
-
-          // Type toggle
-          Container(
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceVariant,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            padding: const EdgeInsets.all(4),
-            child: Row(
-              children: [
-                Expanded(child: _typeToggleBtn(lang.translate('expenses'), _selectedType == 'expense', AppTheme.red, () {
-                  setState(() { _selectedType = 'expense'; _selectedCategory = 'fuel'; });
-                })),
-                const SizedBox(width: 4),
-                Expanded(child: _typeToggleBtn(lang.translate('income'), _selectedType == 'income', AppTheme.green, () {
-                  setState(() { _selectedType = 'income'; _selectedCategory = 'fare'; });
-                })),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          DropdownButtonFormField<String>(
-            initialValue: _selectedCategory,
-            decoration: InputDecoration(
-              labelText: _selectedType == 'income' ? lang.translate('income_source') : lang.translate('expense_category'),
-              prefixIcon: const Icon(Icons.category_outlined, size: 20),
-            ),
-            items: categories
-                .map((cat) => DropdownMenuItem(value: cat, child: Text(lang.translate(cat))))
-                .toList(),
-            onChanged: (val) => setState(() => _selectedCategory = val ?? categories.first),
-          ),
-
-          if (_selectedCategory == 'other') ...[
-            const SizedBox(height: 16),
-            TextField(
-              controller: _customCategoryController,
-              decoration: InputDecoration(
-                labelText: lang.translate('custom_category'),
-                hintText: lang.translate('custom_category_hint'),
-                prefixIcon: const Icon(Icons.edit_outlined, size: 20),
-              ),
-            ),
-          ],
-
-          const SizedBox(height: 16),
-          TextField(
-            controller: _amountController,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: lang.translate('amount'),
-              hintText: '5000',
-              prefixText: 'TSh ',
-              prefixIcon: const Icon(Icons.attach_money, size: 20),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _descriptionController,
-            decoration: InputDecoration(
-              labelText: lang.translate('description'),
-              hintText: 'Matumizi leo',
-              prefixIcon: const Icon(Icons.notes_outlined, size: 20),
-            ),
-          ),
-          const SizedBox(height: 28),
-          SizedBox(
-            width: double.infinity,
-            height: 54,
-            child: ElevatedButton(
-              onPressed: () => _addCashflowTransaction(lang, cashflow),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _selectedType == 'income' ? AppTheme.green : AppTheme.red,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-              child: Text(lang.translate('submit'),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
             ),
           ),
         ],
@@ -944,62 +453,61 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
     );
   }
 
-  Widget _typeToggleBtn(String label, bool isSelected, Color color, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: isSelected ? color : Colors.transparent,
-          borderRadius: BorderRadius.circular(9),
-          boxShadow: isSelected
-              ? [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 6, offset: const Offset(0, 2))]
-              : null,
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 14,
-            color: isSelected ? Colors.white : AppTheme.gray,
-          ),
-        ),
+  Widget _saccoMini(String value, String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(color: DriverDark.card, borderRadius: BorderRadius.circular(8)),
+      child: Column(
+        children: [
+          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: color)),
+          const SizedBox(height: 2),
+          Text(label, style: TextStyle(fontSize: 11, color: DriverDark.grey)),
+        ],
       ),
     );
   }
 
-  // ─── SCORE / CALCULATOR TAB ───────────────────────────
-  Widget _buildScoreTab(LanguageProvider lang) {
-    final Color tierColor = _tierColor(_tier);
+  // ════════════════════════════════════════════════════════
+  // TAB 1 — MY MONEY
+  // ════════════════════════════════════════════════════════
+  Widget _buildMoneyTab(LanguageProvider lang) {
+    final cashflow = context.watch<CashflowProvider>();
+    final txs = cashflow.transactions;
+    final income = txs.where((t) => t.type == 'income').fold<double>(0, (s, t) => s + t.amount);
+    final expense = txs.where((t) => t.type == 'expense').fold<double>(0, (s, t) => s + t.amount);
+    final surplus = income - expense;
 
-    final dailyIncome = double.tryParse(_incomeController.text.trim()) ?? 0.0;
-    final dailyExpense = double.tryParse(_expenseController.text.trim()) ?? 0.0;
-    final remainingCash = dailyIncome - dailyExpense;
-    final superSafePay = remainingCash > 0 ? remainingCash * 0.3 : 0.0;
-    final moderatePay = remainingCash > 0 ? remainingCash * 0.5 : 0.0;
-    final riskyPay = remainingCash > 0 ? remainingCash * 0.7 : 0.0;
+    // group expenses by category
+    final Map<String, double> byCat = {};
+    for (final t in txs.where((t) => t.type == 'expense')) {
+      byCat[t.category] = (byCat[t.category] ?? 0) + t.amount;
+    }
+    final cats = byCat.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return RefreshIndicator(
+      color: DriverDark.gold,
+      backgroundColor: DriverDark.navy,
+      onRefresh: () => _loadData(silent: true),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
         children: [
-          // Score Banner
+          Text(lang.translate('nav_money'),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: DriverDark.white)),
+          const SizedBox(height: 4),
+          Text(lang.translate('my_money_subtitle'),
+              style: TextStyle(fontSize: 13, color: DriverDark.grey)),
+          const SizedBox(height: 16),
+
+          // Cashflow summary
           Container(
-            width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [tierColor, tierColor.withValues(alpha: 0.7)],
+                begin: Alignment.topLeft, end: Alignment.bottomRight,
+                colors: [DriverDark.green.withValues(alpha: 0.10), DriverDark.gold.withValues(alpha: 0.05)],
               ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(color: tierColor.withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6)),
-              ],
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: DriverDark.green.withValues(alpha: 0.15)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1007,356 +515,735 @@ class _DriverHomeScreenState extends State<DriverHomeScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(lang.translate('boda_score').toUpperCase(),
-                        style: const TextStyle(color: Colors.white70, fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: 1.5)),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(20)),
-                      child: Text(_tier.toUpperCase(),
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                    ),
+                    Text(lang.translate('cashflow_30d'),
+                        style: TextStyle(fontSize: 12, color: DriverDark.grey, letterSpacing: 1)),
+                    DBadge(text: surplus >= 0 ? 'Healthy' : 'Watch', color: surplus >= 0 ? DriverDark.greenLight : DriverDark.red),
                   ],
                 ),
+                const SizedBox(height: 16),
+                _barRow(lang.translate('est_income'), income, income, DriverDark.greenLight),
+                const SizedBox(height: 12),
+                _barRow(lang.translate('reported_spending'), expense, income == 0 ? expense : income, DriverDark.gold),
+                const SizedBox(height: 12),
+                const DRowDivider(),
                 const SizedBox(height: 12),
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('${_score.round()}',
-                        style: const TextStyle(color: Colors.white, fontSize: 56, fontWeight: FontWeight.w900)),
-                    const Text('/100', style: TextStyle(color: Colors.white60, fontSize: 18)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: LinearProgressIndicator(
-                    value: (_score / 100).clamp(0.0, 1.0),
-                    backgroundColor: Colors.white24,
-                    valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                    minHeight: 8,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    const Icon(Icons.verified, color: Colors.white, size: 16),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        _score > 0
-                            ? (lang.locale == 'en'
-                                ? 'Your score is based on scans and SACCO payments.'
-                                : 'Alama zako zimehesabiwa kwa miamala na marejesho ya SACCO.')
-                            : lang.translate('score_not_active'),
-                        style: const TextStyle(color: Colors.white, fontSize: 12, height: 1.4),
-                      ),
-                    ),
+                    Text(lang.translate('estimated_surplus'),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: DriverDark.white)),
+                    Text(fmtTsh(surplus),
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.w800,
+                            color: surplus >= 0 ? DriverDark.greenLight : DriverDark.red)),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
 
-          // Eligibility
-          if (_eligibility != null && _score > 0) ...[
-            Text(lang.translate('credit_limit'), style: AppTheme.headingSmall),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.surface,
-                borderRadius: BorderRadius.circular(14),
-                border: const Border(left: BorderSide(color: AppTheme.accent, width: 3)),
-                boxShadow: [BoxShadow(color: AppTheme.navy.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 2))],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(lang.translate('eligible_loan_range'),
-                      style: const TextStyle(fontSize: 12, color: AppTheme.gray, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 6),
-                  Text(
-                    'TSh ${_parseNum(_eligibility!['min']).toStringAsFixed(0)} — TSh ${_parseNum(_eligibility!['max']).toStringAsFixed(0)}',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.navy),
+          // Why track
+          DCard(
+            borderColor: DriverDark.gold.withValues(alpha: 0.2),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('💡', style: TextStyle(fontSize: 22)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(lang.translate('why_track'),
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: DriverDark.white)),
+                      const SizedBox(height: 4),
+                      Text(lang.translate('why_track_desc'),
+                          style: TextStyle(fontSize: 12, color: DriverDark.greyLight, height: 1.6)),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  Text(lang.translate('eligible_products'),
-                      style: const TextStyle(fontSize: 12, color: AppTheme.gray, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    children: (_eligibility!['products'] as List? ?? []).map<Widget>((prod) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: AppTheme.accent.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppTheme.accent.withValues(alpha: 0.3)),
-                        ),
-                        child: Text(lang.translate(prod.toString()),
-                            style: const TextStyle(color: AppTheme.accent, fontSize: 12, fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
+          ),
+
+          // Spending categories
+          DSectionHead(
+            title: lang.translate('this_month_spending'),
+            actionLabel: '+ ${lang.translate('add')}',
+            onAction: () => _showAddExpense(lang, cashflow),
+          ),
+          DCard(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: cats.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    child: Center(
+                      child: Text(lang.translate('no_spending_yet'),
+                          style: TextStyle(color: DriverDark.grey, fontStyle: FontStyle.italic)),
+                    ),
+                  )
+                : Column(
+                    children: cats.map((e) {
+                      return DListItem(
+                        emoji: _catEmoji(e.key),
+                        emojiBg: DriverDark.red.withValues(alpha: 0.10),
+                        title: lang.translate(e.key),
+                        trailing: DTrailingValue(amount: fmtTsh(e.value), amountColor: DriverDark.red),
                       );
                     }).toList(),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-
-          // Loans
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(lang.translate('loans'), style: AppTheme.headingSmall),
-              if (_score > 0)
-                ElevatedButton(
-                  onPressed: () async {
-                    final refresh = await Navigator.pushNamed(context, '/driver/loans');
-                    if (refresh == true) _loadData(silent: true);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.navy,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  child: Text(lang.translate('apply_loan_btn'),
-                      style: const TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-            ],
           ),
-          const SizedBox(height: 10),
 
-          if (_loansList.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceVariant,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(lang.translate('no_active_loans'),
-                    style: const TextStyle(color: AppTheme.grayLight, fontStyle: FontStyle.italic)),
-              ),
-            )
-          else
-            ..._loansList.map((loan) {
-              final status = loan['status'] as String? ?? 'pending';
-              final statusColor = _loanStatusColor(status);
-              return Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.surface,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppTheme.border),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(lang.translate(loan['loan_purpose'] as String? ?? 'other').toUpperCase(),
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.navy)),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: statusColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(status.toUpperCase(),
-                              style: TextStyle(color: statusColor, fontSize: 10, fontWeight: FontWeight.bold)),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _loanDetailItem(lang.translate('loan_amount_label'), 'TSh ${_parseNum(loan['amount_tsh']).toStringAsFixed(0)}'),
-                        _loanDetailItem(lang.translate('loan_payment_label'), 'TSh ${_parseNum(loan['monthly_payment_tsh']).toStringAsFixed(0)}'),
-                        _loanDetailItem(lang.translate('loan_term_label'), '${loan['term_months'] ?? "0"} ${lang.locale == "en" ? "Mos" : "Mie"}'),
-                      ],
-                    ),
-                    if (loan['applied_at'] != null) ...[
-                      const SizedBox(height: 10),
-                      Text('${lang.translate('loan_date_label')}: ${loan['applied_at'].toString().split('T').first}',
-                          style: const TextStyle(fontSize: 11, color: AppTheme.gray)),
-                    ],
-                  ],
-                ),
-              );
-            }).toList(),
-
-          const SizedBox(height: 24),
-
-          // Repayment Advisor
-          Text(lang.translate('repayment_advisor'), style: AppTheme.headingSmall),
-          const SizedBox(height: 4),
-          Text(
-            lang.locale == 'en'
-                ? 'Calculate your daily budget and check what you can afford'
-                : 'Piga hesabu ya bajeti yako ya siku na ujue unachoweza kumudu',
-            style: const TextStyle(fontSize: 13, color: AppTheme.gray),
+          // Credit profile
+          DSectionHead(
+            title: lang.translate('credit_profile'),
+            trailing: DBadge(text: 'For Bank Review', color: DriverDark.gold),
           ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _incomeController,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: lang.translate('daily_income_predict'),
-              prefixText: 'TSh ',
-              prefixIcon: const Icon(Icons.arrow_downward, color: AppTheme.green, size: 20),
-            ),
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _expenseController,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: lang.translate('daily_expense_predict'),
-              prefixText: 'TSh ',
-              prefixIcon: const Icon(Icons.arrow_upward, color: AppTheme.red, size: 20),
-            ),
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: 20),
-
-          if (remainingCash <= 0)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.red.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.red.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.warning_amber_rounded, color: AppTheme.red, size: 26),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      lang.locale == 'en'
-                          ? 'Warning: Expenses exceed income. You cannot afford a loan right now.'
-                          : 'Tahadhari: Matumizi yanazidi kipato. Hauwezi kumudu mkopo kwa sasa.',
-                      style: const TextStyle(color: AppTheme.red, fontSize: 13, height: 1.4),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else ...[
-            Row(
+          DCard(
+            borderColor: DriverDark.green.withValues(alpha: 0.2),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(lang.translate('daily_cash_remaining'),
-                    style: const TextStyle(fontSize: 12, color: AppTheme.gray, fontWeight: FontWeight.w600)),
-                const Spacer(),
-                Text('TSh ${remainingCash.toStringAsFixed(0)}',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.green)),
+                Text(lang.translate('what_bank_sees'),
+                    style: TextStyle(fontSize: 12, color: DriverDark.grey, letterSpacing: 1)),
+                const SizedBox(height: 12),
+                _creditRow(lang.translate('total_income'), fmtTsh(income), DriverDark.greenLight),
+                _creditRow(lang.translate('total_expenses'), fmtTsh(expense), DriverDark.white),
+                _creditRow(lang.translate('estimated_surplus'), fmtTsh(surplus), DriverDark.gold),
+                if (_eligibility != null)
+                  _creditRow(lang.translate('credit_limit'),
+                      '${fmtTsh(_num(_eligibility!['min']))} — ${fmtTsh(_num(_eligibility!['max']))}', DriverDark.gold,
+                      last: true),
               ],
             ),
-            const SizedBox(height: 16),
-            Text(lang.translate('safe_repayment_levels'),
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppTheme.navy)),
-            const SizedBox(height: 10),
-            _advisorTierRow(title: lang.translate('super_safe_level'), amount: superSafePay,
-                description: lang.translate('super_safe_desc'), levelColor: AppTheme.green),
-            const SizedBox(height: 8),
-            _advisorTierRow(title: lang.translate('moderate_level'), amount: moderatePay,
-                description: lang.translate('moderate_desc'), levelColor: AppTheme.orange),
-            const SizedBox(height: 8),
-            _advisorTierRow(title: lang.translate('risky_level'), amount: riskyPay,
-                description: lang.translate('risky_desc'), levelColor: AppTheme.red),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: AppTheme.accent.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.accent.withValues(alpha: 0.25)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.lightbulb_outline, color: AppTheme.accent, size: 20),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      lang.locale == 'en'
-                          ? 'We advise choosing a loan payment close to the Super Safe level to stay stress-free!'
-                          : 'Tunakushauri kuchagua mkopo wenye marejesho ya karibu na kiwango cha Salama Kabisa!',
-                      style: const TextStyle(fontSize: 12, color: AppTheme.accent, height: 1.4),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+          ),
           const SizedBox(height: 30),
         ],
       ),
     );
   }
 
-  Widget _loanDetailItem(String label, String value) {
+  Widget _barRow(String label, double value, double max, Color color) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: AppTheme.gray, fontWeight: FontWeight.w600)),
-        const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.navy)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: TextStyle(fontSize: 12, color: color)),
+            Text(fmtTsh(value), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+          ],
+        ),
+        const SizedBox(height: 6),
+        DProgressBar(value: max == 0 ? 0 : (value / max), color: color, height: 10),
       ],
     );
   }
 
-  Widget _advisorTierRow({required String title, required double amount, required String description, required Color levelColor}) {
+  Widget _creditRow(String label, String value, Color color, {bool last = false}) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: AppTheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border(left: BorderSide(color: levelColor, width: 3)),
-        boxShadow: [BoxShadow(color: AppTheme.navy.withValues(alpha: 0.04), blurRadius: 6, offset: const Offset(0, 2))],
+        border: last ? null : Border(bottom: BorderSide(color: DriverDark.cardBorder)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: levelColor)),
-              Text('TSh ${amount.toStringAsFixed(0)} / ${lang.locale == "en" ? "Day" : "Siku"}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.navy)),
-            ],
-          ),
-          const SizedBox(height: 5),
-          Text(description, style: const TextStyle(fontSize: 12, color: AppTheme.gray, height: 1.4)),
+          Text(label, style: TextStyle(fontSize: 13, color: DriverDark.grey)),
+          Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color)),
         ],
       ),
     );
   }
 
-  Color _loanStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'active':
-      case 'disbursed': return AppTheme.green;
-      case 'approved': return AppTheme.teal;
-      case 'pending': return AppTheme.orange;
-      case 'repaid': return AppTheme.navy;
-      default: return AppTheme.red;
+  void _showAddExpense(LanguageProvider lang, CashflowProvider cashflow) {
+    final amountCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    String type = 'expense';
+    String category = 'fuel';
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: DriverDark.navy,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheet) {
+            final categories = type == 'income' ? ['fare', 'other'] : ['fuel', 'maintenance', 'food', 'sacco', 'other'];
+            if (!categories.contains(category)) category = categories.first;
+            return Padding(
+              padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(type == 'income' ? lang.translate('add_income') : lang.translate('add_expense'),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: DriverDark.white)),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(child: _typeToggle(lang.translate('expenses'), type == 'expense', DriverDark.red,
+                          () => setSheet(() { type = 'expense'; category = 'fuel'; }))),
+                      const SizedBox(width: 8),
+                      Expanded(child: _typeToggle(lang.translate('income'), type == 'income', DriverDark.greenLight,
+                          () => setSheet(() { type = 'income'; category = 'fare'; }))),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    children: categories.map((c) {
+                      final sel = c == category;
+                      return ChoiceChip(
+                        label: Text(lang.translate(c)),
+                        selected: sel,
+                        onSelected: (_) => setSheet(() => category = c),
+                        backgroundColor: DriverDark.card,
+                        selectedColor: DriverDark.gold,
+                        labelStyle: TextStyle(color: sel ? DriverDark.dark : DriverDark.greyLight, fontSize: 12),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: amountCtrl,
+                    keyboardType: TextInputType.number,
+                    style: TextStyle(color: DriverDark.white),
+                    decoration: _darkInput(lang.translate('amount'), 'TZS '),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: descCtrl,
+                    style: TextStyle(color: DriverDark.white),
+                    decoration: _darkInput(lang.translate('description'), null),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final amt = double.tryParse(amountCtrl.text.trim()) ?? 0;
+                        if (amt <= 0) return;
+                        await cashflow.addTransaction(
+                            type: type, amount: amt, category: category, description: descCtrl.text.trim());
+                        if (ctx.mounted) Navigator.pop(ctx);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: type == 'income' ? DriverDark.green : DriverDark.gold,
+                        foregroundColor: DriverDark.dark,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(lang.translate('submit'),
+                          style: TextStyle(fontWeight: FontWeight.w700, color: DriverDark.dark)),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  InputDecoration _darkInput(String label, String? prefix) {
+    return InputDecoration(
+      labelText: label,
+      prefixText: prefix,
+      labelStyle: TextStyle(color: DriverDark.grey),
+      prefixStyle: TextStyle(color: DriverDark.white),
+      filled: true,
+      fillColor: DriverDark.card,
+      enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: DriverDark.cardBorder)),
+      focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: DriverDark.gold)),
+    );
+  }
+
+  Widget _typeToggle(String label, bool selected, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? color : DriverDark.card,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+                fontWeight: FontWeight.w700, color: selected ? DriverDark.dark : DriverDark.grey)),
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════════════════
+  // TAB — CREDIT (AI) — "RIDER PROFILE FOR BANK REVIEW"
+  // ════════════════════════════════════════════════════════
+  Future<void> _runCredit() async {
+    setState(() => _creditLoading = true);
+    try {
+      final res = await _api.post('/credit/analyze');
+      if (mounted) setState(() => _credit = (res as Map).cast<String, dynamic>());
+    } catch (e) {
+      debugPrint('credit: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$e'), backgroundColor: DriverDark.red, behavior: SnackBarBehavior.floating),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _creditLoading = false);
     }
   }
 
-  LanguageProvider get lang => context.read<LanguageProvider>();
+  Color _recColor(String rec) {
+    switch (rec) {
+      case 'APPROVE': return DriverDark.greenLight;
+      case 'CONDITIONAL': return DriverDark.gold;
+      default: return DriverDark.red;
+    }
+  }
+
+  void _showQrCodeBottomSheet(LanguageProvider lang, String phone) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: DriverDark.navy,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                lang.locale == 'en' ? 'My QR Code' : 'QR Code Yangu',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: DriverDark.white),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                lang.locale == 'en'
+                    ? 'Show this QR code to the station operator to scan'
+                    : 'Onyesha QR Code hii kwa mhudumu wa kituo ili ascan',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 13, color: DriverDark.grey),
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: DriverDark.gold, width: 2),
+                ),
+                child: QrImageView(
+                  data: phone.isNotEmpty ? phone : 'chapgo_driver_unknown',
+                  version: QrVersions.auto,
+                  size: 200,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _recLabel(String rec, LanguageProvider lang) {
+    switch (rec) {
+      case 'APPROVE': return lang.translate('credit_approve');
+      case 'CONDITIONAL': return lang.translate('credit_conditional');
+      default: return lang.translate('credit_decline');
+    }
+  }
+
+  Widget _buildCreditTab(LanguageProvider lang) {
+    final c = _credit;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+      children: [
+        Text(lang.translate('credit_title'),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: DriverDark.gold, letterSpacing: 0.5)),
+        const SizedBox(height: 4),
+        Text(lang.translate('credit_subtitle'),
+            style: TextStyle(fontSize: 12, color: DriverDark.grey, height: 1.4)),
+        const SizedBox(height: 16),
+
+        if (c == null)
+          DCard(
+            child: Column(
+              children: [
+                Icon(Icons.analytics_outlined, size: 44, color: DriverDark.grey),
+                const SizedBox(height: 12),
+                Text(lang.translate('credit_none_yet'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: DriverDark.grey, height: 1.5)),
+              ],
+            ),
+          )
+        else ...[
+          // Recommendation banner
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: _recColor(c['recommendation'] as String? ?? 'DECLINE').withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _recColor(c['recommendation'] as String? ?? 'DECLINE').withValues(alpha: 0.4)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.verified_user, color: _recColor(c['recommendation'] as String? ?? 'DECLINE')),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(lang.translate('credit_recommendation'),
+                          style: TextStyle(fontSize: 11, color: DriverDark.grey)),
+                      Text(_recLabel(c['recommendation'] as String? ?? 'DECLINE', lang),
+                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800,
+                              color: _recColor(c['recommendation'] as String? ?? 'DECLINE'))),
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('${_num(c['score']).round()}/1000',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: DriverDark.white)),
+                    Text((c['tier'] as String? ?? 'new').toUpperCase(),
+                        style: TextStyle(fontSize: 11, color: DriverDark.tierColor(c['tier'] as String? ?? 'new'))),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          DCard(
+            child: Column(
+              children: [
+                _creditRow(lang.translate('credit_loan_limit'), fmtTsh(_num(c['loan_limit'])), DriverDark.gold),
+                _creditRow(lang.translate('credit_interest'), '${_num(c['interest_rate']).round()}% p.a.', DriverDark.white),
+                _creditRow(lang.translate('credit_monthly_income'), fmtTsh(_num(c['monthly_income'])), DriverDark.greenLight),
+                _creditRow(lang.translate('credit_dti'), '${_num(c['debt_to_income_ratio']).round()}%', DriverDark.white),
+                _creditRow(lang.translate('credit_max_repayment'), '${fmtTsh(_num(c['max_affordable_repayment']))} /mo', DriverDark.white, last: true),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          if ((c['strengths'] as List?)?.isNotEmpty ?? false)
+            _creditList(lang.translate('credit_strengths'), (c['strengths'] as List).cast<dynamic>(), DriverDark.greenLight, Icons.check_circle_outline),
+          if ((c['risk_factors'] as List?)?.isNotEmpty ?? false)
+            _creditList(lang.translate('credit_risk_factors'), (c['risk_factors'] as List).cast<dynamic>(), DriverDark.red, Icons.warning_amber_rounded),
+          if ((c['conditions'] as List?)?.isNotEmpty ?? false)
+            _creditList(lang.translate('credit_conditions'), (c['conditions'] as List).cast<dynamic>(), DriverDark.gold, Icons.rule),
+
+          DCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(lang.translate('credit_summary'),
+                    style: TextStyle(fontSize: 12, color: DriverDark.grey, letterSpacing: 1, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 8),
+                Text(lang.locale == 'sw' ? (c['narrative_sw'] as String? ?? '') : (c['narrative_en'] as String? ?? ''),
+                    style: TextStyle(fontSize: 13, color: DriverDark.white, height: 1.6)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
+
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: ElevatedButton.icon(
+            onPressed: _creditLoading ? null : _runCredit,
+            icon: _creditLoading
+                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.auto_awesome, color: Colors.white, size: 18),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: DriverDark.green,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            label: Text(lang.translate('credit_run'),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: Colors.white)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _creditList(String title, List<dynamic> items, Color color, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: DCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: TextStyle(fontSize: 12, color: color, letterSpacing: 1, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            ...items.map((it) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(icon, size: 16, color: color),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(it.toString(),
+                          style: TextStyle(fontSize: 13, color: DriverDark.white, height: 1.4))),
+                    ],
+                  ),
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════════════════
+  // TAB — SCAN (TODAY) / HISTORY
+  // ════════════════════════════════════════════════════════
+  Widget _buildHistoryTab(LanguageProvider lang) {
+    final litres = _num(_scanTotals['total_liters']);
+    final spent = _num(_scanTotals['total_amount_tsh']);
+    final count = _num(_scanTotals['scan_count']).round();
+    final user = context.read<AuthProvider>().user;
+    final phone = _profile?['phone'] as String? ?? user?.phone ?? '';
+
+    return RefreshIndicator(
+      color: DriverDark.gold,
+      backgroundColor: DriverDark.navy,
+      onRefresh: () => _loadData(silent: true),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+        children: [
+          Text(lang.translate('scan_history_title'),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: DriverDark.white)),
+          const SizedBox(height: 16),
+
+          // Show QR Code quick action card
+          GestureDetector(
+            onTap: () => _showQrCodeBottomSheet(lang, phone),
+            child: DCard(
+              borderColor: DriverDark.gold.withValues(alpha: 0.3),
+              fill: DriverDark.gold.withValues(alpha: 0.08),
+              child: Row(
+                children: [
+                  const Icon(Icons.qr_code_2, size: 36, color: Color(0xFFD4A843)),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          lang.locale == 'en' ? 'Show QR Code for Scan' : 'Onyesha QR Code ya Skani',
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: DriverDark.white),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          lang.locale == 'en'
+                              ? 'Show to station operator to log fuel purchase'
+                              : 'Onyesha mhudumu wa kituo ili kurekodi mafuta',
+                          style: TextStyle(fontSize: 11, color: DriverDark.greyLight),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right, color: DriverDark.gold),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          DStatGrid(cards: [
+            DStatCard(value: '$count', label: lang.translate('scan_count_label'), valueColor: DriverDark.greenLight),
+            DStatCard(value: '${litres.toStringAsFixed(0)}L', label: lang.translate('litres_30d'), valueColor: DriverDark.gold),
+            DStatCard(value: fmtTsh(spent), label: lang.translate('fuel_spent_30d')),
+            DStatCard(value: '$_daysActive', label: lang.translate('days_active_short'), valueColor: DriverDark.greenLight),
+          ]),
+          const SizedBox(height: 8),
+          DSectionHead(title: lang.translate('recent_scans')),
+          DCard(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: _scans.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Center(
+                      child: Text(lang.translate('no_scans_yet'),
+                          style: TextStyle(color: DriverDark.grey, fontStyle: FontStyle.italic)),
+                    ),
+                  )
+                : Column(
+                    children: _scans.map((s) {
+                      return DListItem(
+                        emoji: '⛽',
+                        emojiBg: DriverDark.green.withValues(alpha: 0.12),
+                        title: s['station_name'] as String? ?? 'Station',
+                        meta: '${_fmtDate(s['scanned_at'])} · ${(s['payment_method'] ?? 'cash').toString()}',
+                        trailing: DTrailingValue(
+                          amount: '${_num(s['liters']).toStringAsFixed(1)}L',
+                          unit: fmtTsh(_num(s['amount_tsh'])),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+          ),
+          const SizedBox(height: 30),
+        ],
+      ),
+    );
+  }
+
+  // ════════════════════════════════════════════════════════
+  // TAB 4 — PROFILE
+  // ════════════════════════════════════════════════════════
+  Widget _buildProfileTab(LanguageProvider lang) {
+    final user = context.watch<AuthProvider>().user;
+    final name = _profile?['full_name'] as String? ?? user?.fullName ?? 'Driver';
+    final phone = _profile?['phone'] as String? ?? user?.phone ?? '';
+    final chapgoId = _profile?['chapgo_id'] as String? ?? '';
+    final plate = _profile?['vehicle_plate'] as String?;
+    final vtype = _profile?['vehicle_type'] as String?;
+    final saccoName = _profile?['sacco_name'] as String?;
+    final tierColor = DriverDark.tierColor(_tier);
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
+      children: [
+        Center(
+          child: Column(
+            children: [
+              CircleAvatar(
+                radius: 40,
+                backgroundColor: DriverDark.gold,
+                child: Text(name.isNotEmpty ? name[0].toUpperCase() : 'D',
+                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: DriverDark.dark)),
+              ),
+              const SizedBox(height: 12),
+              Text(name, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: DriverDark.white)),
+              const SizedBox(height: 4),
+              Text('$phone${chapgoId.isNotEmpty ? ' · $chapgoId' : ''}',
+                  style: TextStyle(fontSize: 13, color: DriverDark.grey)),
+              const SizedBox(height: 8),
+              DBadge(text: '${_tier.toUpperCase()} · ${_score.round()} pts', color: tierColor),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        DCard(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Column(
+            children: [
+              if (plate != null)
+                DListItem(emoji: '🏍️', title: lang.translate('plate_field'), meta: '$plate${vtype != null ? ' · $vtype' : ''}'),
+              if (saccoName != null)
+                DListItem(emoji: '🏛️', title: 'SACCO', meta: saccoName),
+              DListItem(
+                emoji: '📍',
+                title: lang.translate('residential_address_field'),
+                meta: (_profile?['district'] as String?) ?? '—',
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        DCard(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Column(
+            children: [
+              _profileLink('🔳', lang.translate('menu_qr'), () => Navigator.pushNamed(context, '/driver/qr-code')),
+              _profileLink('🏛️', lang.locale == 'en' ? 'My SACCOs' : 'SACCO Zangu',
+                  () => Navigator.pushNamed(context, '/driver/saccos')),
+              _profileLink('🏦', lang.translate('menu_loan_list'), () => Navigator.pushNamed(context, '/driver/loans/list')),
+              _profileLink('⛽', lang.translate('menu_stations'),
+                  () => Navigator.pushNamed(context, '/driver/stations/map', arguments: {'tab': 0})),
+              _profileLink('📊', lang.translate('menu_report'),
+                  () => Navigator.pushNamed(context, '/driver/reports/evaluation')),
+              _profileLink('📈', lang.translate('boda_score'),
+                  () => Navigator.pushNamed(context, '/driver/score').then((_) => _loadData(silent: true))),
+              _profileLink('✏️', lang.translate('profile'),
+                  () => Navigator.pushNamed(context, '/driver/profile').then((_) => _loadData(silent: true))),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: OutlinedButton.icon(
+            onPressed: () async {
+              final nav = Navigator.of(context);
+              await context.read<AuthProvider>().logout();
+              if (!mounted) return;
+              nav.pushNamedAndRemoveUntil('/', (_) => false);
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: DriverDark.red,
+              side: BorderSide(color: DriverDark.red),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            icon: const Icon(Icons.logout, size: 18),
+            label: Text(lang.translate('sign_out_confirm')),
+          ),
+        ),
+        const SizedBox(height: 20),
+        Center(
+          child: Text('Chapgo · Phase 1 Pilot',
+              style: TextStyle(fontSize: 10, color: DriverDark.grey)),
+        ),
+      ],
+    );
+  }
+
+  Widget _profileLink(String emoji, String label, VoidCallback onTap) {
+    return DListItem(
+      emoji: emoji,
+      title: label,
+      trailing: Icon(Icons.chevron_right, color: DriverDark.grey, size: 20),
+      onTap: onTap,
+    );
+  }
+
+  // ─── helpers ──────────────────────────────────────────────
+  String _catEmoji(String cat) {
+    switch (cat) {
+      case 'fuel': return '⛽';
+      case 'maintenance': return '🔧';
+      case 'food': return '🍛';
+      case 'sacco': return '🏛️';
+      case 'fare': return '💰';
+      default: return '📝';
+    }
+  }
+
+  String _fmtDate(dynamic raw) {
+    if (raw == null) return '';
+    try {
+      final d = DateTime.parse(raw.toString()).toLocal();
+      final now = DateTime.now();
+      final h = d.hour.toString().padLeft(2, '0');
+      final m = d.minute.toString().padLeft(2, '0');
+      if (d.year == now.year && d.month == now.month && d.day == now.day) return 'Today, $h:$m';
+      return '${d.day}/${d.month}, $h:$m';
+    } catch (_) {
+      return raw.toString().split('T').first;
+    }
+  }
 }
 
-// ─── Animated Ringing Bell ────────────────────────────────
+// ─── Animated ringing bell ────────────────────────────────
 class RingingBell extends StatefulWidget {
   final int count;
   final VoidCallback onTap;
@@ -1373,16 +1260,16 @@ class _RingingBellState extends State<RingingBell> with SingleTickerProviderStat
   void initState() {
     super.initState();
     _controller = AnimationController(duration: const Duration(milliseconds: 300), vsync: this);
-    _updateAnimation();
+    _update();
   }
 
   @override
   void didUpdateWidget(RingingBell oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _updateAnimation();
+    _update();
   }
 
-  void _updateAnimation() {
+  void _update() {
     if (widget.count > 0) {
       _controller.repeat(reverse: true);
     } else {
@@ -1400,16 +1287,14 @@ class _RingingBellState extends State<RingingBell> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     return RotationTransition(
-      turns: Tween<double>(begin: -0.06, end: 0.06).animate(
-          CurvedAnimation(parent: _controller, curve: Curves.linear)),
+      turns: Tween<double>(begin: -0.06, end: 0.06)
+          .animate(CurvedAnimation(parent: _controller, curve: Curves.linear)),
       child: Stack(
         alignment: Alignment.center,
         children: [
           IconButton(
-            icon: Icon(
-              widget.count > 0 ? Icons.notifications_active : Icons.notifications_none,
-              color: Colors.white,
-            ),
+            icon: Icon(widget.count > 0 ? Icons.notifications_active : Icons.notifications_none,
+                color: DriverDark.white),
             onPressed: widget.onTap,
           ),
           if (widget.count > 0)
@@ -1418,13 +1303,11 @@ class _RingingBellState extends State<RingingBell> with SingleTickerProviderStat
               top: 6,
               child: Container(
                 padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(color: AppTheme.red, shape: BoxShape.circle),
+                decoration: BoxDecoration(color: DriverDark.red, shape: BoxShape.circle),
                 constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                child: Text(
-                  '${widget.count}',
-                  style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
+                child: Text('${widget.count}',
+                    style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center),
               ),
             ),
         ],

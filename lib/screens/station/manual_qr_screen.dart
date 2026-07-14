@@ -42,7 +42,7 @@ class _ManualQrScreenState extends State<ManualQrScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Ingiza QR Code',
               style: TextStyle(
                 fontSize: 22,
@@ -51,7 +51,7 @@ class _ManualQrScreenState extends State<ManualQrScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Andika QR token ya dereva kama kamera haifanyi kazi',
               style: TextStyle(fontSize: 14, color: AppTheme.gray),
             ),

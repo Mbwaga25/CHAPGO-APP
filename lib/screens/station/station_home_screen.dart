@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../models/scan.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../services/api_service.dart';
+import '../../widgets/theme_toggle_button.dart';
 import 'operators_screen.dart';
 
 class StationHomeScreen extends StatefulWidget {
@@ -63,6 +65,7 @@ class _StationHomeScreenState extends State<StationHomeScreen> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
+    context.watch<ThemeProvider>(); // recolor on theme toggle
     final stationName = widget.stationName ?? user?.stationName ?? 'Station';
 
     return Scaffold(
@@ -87,6 +90,7 @@ class _StationHomeScreenState extends State<StationHomeScreen> {
                 onPressed: () => Navigator.pop(context),
               )
             : null,
+        actions: const [ThemeToggleButton()],
       ),
       drawer: widget.stationId != null
           ? null
@@ -101,11 +105,11 @@ class _StationHomeScreenState extends State<StationHomeScreen> {
                       left: 20,
                       right: 20,
                     ),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: [AppTheme.navy, Color(0xFF1E3A5F)],
+                        colors: const [Color(0xFF0B1D2E), Color(0xFF1E3A5F)],
                       ),
                     ),
                     child: Row(
@@ -164,9 +168,9 @@ class _StationHomeScreenState extends State<StationHomeScreen> {
                         color: AppTheme.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.logout, color: AppTheme.red, size: 20),
+                      child: Icon(Icons.logout, color: AppTheme.red, size: 20),
                     ),
-                    title: const Text('Ondoka', style: TextStyle(color: AppTheme.red, fontWeight: FontWeight.w600)),
+                    title: Text('Ondoka', style: TextStyle(color: AppTheme.red, fontWeight: FontWeight.w600)),
                     onTap: () async {
                       Navigator.pop(context);
                       await context.read<AuthProvider>().logout();
@@ -195,7 +199,7 @@ class _StationHomeScreenState extends State<StationHomeScreen> {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.surface,
-        border: const Border(top: BorderSide(color: AppTheme.border, width: 1)),
+        border: Border(top: BorderSide(color: AppTheme.border, width: 1)),
         boxShadow: [
           BoxShadow(color: AppTheme.navy.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, -4)),
         ],
@@ -224,20 +228,20 @@ class _StationHomeScreenState extends State<StationHomeScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? AppTheme.navy.withValues(alpha: 0.08) : Colors.transparent,
+          color: isActive ? AppTheme.gold.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(isActive ? activeIcon : icon,
-                color: isActive ? AppTheme.navy : AppTheme.grayLight, size: 24),
+                color: isActive ? AppTheme.gold : AppTheme.gray, size: 24),
             const SizedBox(height: 4),
             Text(label,
                 style: TextStyle(
                   fontSize: 10,
                   fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                  color: isActive ? AppTheme.navy : AppTheme.grayLight,
+                  color: isActive ? AppTheme.gold : AppTheme.gray,
                 )),
           ],
         ),
@@ -251,7 +255,7 @@ class _StationHomeScreenState extends State<StationHomeScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
+          gradient: LinearGradient(
             colors: [AppTheme.gold, AppTheme.goldDark],
           ),
           borderRadius: BorderRadius.circular(14),
@@ -283,11 +287,11 @@ class _StationHomeScreenState extends State<StationHomeScreen> {
                 // ─── Gradient stats header ────────────────
                 Container(
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [AppTheme.navy, Color(0xFF1E3A5F)],
+                      colors: const [Color(0xFF0B1D2E), Color(0xFF1E3A5F)],
                     ),
                   ),
                   child: Column(
@@ -330,7 +334,7 @@ class _StationHomeScreenState extends State<StationHomeScreen> {
                                 color: AppTheme.green.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(Icons.attach_money, color: AppTheme.green, size: 22),
+                              child: Icon(Icons.attach_money, color: AppTheme.green, size: 22),
                             ),
                             const SizedBox(width: 12),
                             Column(
@@ -388,11 +392,11 @@ class _StationHomeScreenState extends State<StationHomeScreen> {
                         color: AppTheme.surfaceVariant,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Column(
                           children: [
                             Icon(Icons.history, size: 36, color: AppTheme.grayLight),
-                            SizedBox(height: 10),
+                            const SizedBox(height: 10),
                             Text('Hakuna scans bado leo',
                                 style: TextStyle(color: AppTheme.grayLight, fontStyle: FontStyle.italic)),
                           ],
@@ -423,7 +427,7 @@ class _StationHomeScreenState extends State<StationHomeScreen> {
                                   color: AppTheme.teal.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: const Icon(Icons.motorcycle, color: AppTheme.teal, size: 20),
+                                child: Icon(Icons.motorcycle, color: AppTheme.teal, size: 20),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -433,12 +437,12 @@ class _StationHomeScreenState extends State<StationHomeScreen> {
                                     Text(scan.driverName,
                                         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                                     Text('${scan.liters.toStringAsFixed(1)}L · ${scan.vehiclePlate ?? ""}',
-                                        style: const TextStyle(fontSize: 12, color: AppTheme.gray)),
+                                        style: TextStyle(fontSize: 12, color: AppTheme.gray)),
                                   ],
                                 ),
                               ),
                               Text('TSh ${scan.amountTsh.round()}',
-                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppTheme.navy)),
+                                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppTheme.navy)),
                             ],
                           ),
                         );

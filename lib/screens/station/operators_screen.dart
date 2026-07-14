@@ -140,7 +140,7 @@ class _OperatorsScreenState extends State<OperatorsScreen> {
             return AlertDialog(
               backgroundColor: AppTheme.bg,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              title: const Text(
+              title: Text(
                 'Weka Mfanyakazi Mpya',
                 style: TextStyle(color: AppTheme.navy, fontWeight: FontWeight.bold),
               ),
@@ -224,7 +224,7 @@ class _OperatorsScreenState extends State<OperatorsScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Ghairi', style: TextStyle(color: AppTheme.gray)),
+                  child: Text('Ghairi', style: TextStyle(color: AppTheme.gray)),
                 ),
                 ElevatedButton(
                   onPressed: submitting ? null : submit,
@@ -233,7 +233,7 @@ class _OperatorsScreenState extends State<OperatorsScreen> {
                     foregroundColor: AppTheme.white,
                   ),
                   child: submitting
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.white),
@@ -277,7 +277,7 @@ class _OperatorsScreenState extends State<OperatorsScreen> {
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: [
                         SizedBox(height: MediaQuery.of(context).size.height * 0.3),
-                        const Center(
+                        Center(
                           child: Text(
                             'Hakuna wafanyakazi wengine bado.',
                             style: TextStyle(
@@ -314,7 +314,7 @@ class _OperatorsScreenState extends State<OperatorsScreen> {
                               children: [
                                 Text(
                                   name,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
                                     color: AppTheme.navy,
@@ -328,7 +328,7 @@ class _OperatorsScreenState extends State<OperatorsScreen> {
                                   ),
                                   child: Text(
                                     role.toUpperCase(),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: AppTheme.gold,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 11,
@@ -343,23 +343,23 @@ class _OperatorsScreenState extends State<OperatorsScreen> {
                                 const SizedBox(height: 8),
                                 Row(
                                   children: [
-                                    const Icon(Icons.phone, size: 14, color: AppTheme.gray),
+                                    Icon(Icons.phone, size: 14, color: AppTheme.gray),
                                     const SizedBox(width: 6),
-                                    Text(phone, style: const TextStyle(fontSize: 14, color: AppTheme.gray)),
+                                    Text(phone, style: TextStyle(fontSize: 14, color: AppTheme.gray)),
                                   ],
                                 ),
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    const Icon(Icons.access_time, size: 14, color: AppTheme.gray),
+                                    Icon(Icons.access_time, size: 14, color: AppTheme.gray),
                                     const SizedBox(width: 6),
-                                    Text('Last Login: $lastLogin', style: const TextStyle(fontSize: 12, color: AppTheme.gray)),
+                                    Text('Last Login: $lastLogin', style: TextStyle(fontSize: 12, color: AppTheme.gray)),
                                   ],
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   'Amesajiliwa: $created',
-                                  style: const TextStyle(fontSize: 11, color: AppTheme.grayLight),
+                                  style: TextStyle(fontSize: 11, color: AppTheme.grayLight),
                                 ),
                               ],
                             ),

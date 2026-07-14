@@ -70,12 +70,12 @@ class _ConfirmScreenState extends State<ConfirmScreen> {
                 decoration: BoxDecoration(
                   color: const Color(0xFFE8F5EB),
                   borderRadius: BorderRadius.circular(12),
-                  border: const Border(left: BorderSide(color: AppTheme.green, width: 4)),
+                  border: Border(left: BorderSide(color: AppTheme.green, width: 4)),
                 ),
-                child: const Column(
+                child: Column(
                   children: [
-                    Text('✅', style: TextStyle(fontSize: 48)),
-                    SizedBox(height: 8),
+                    const Text('✅', style: TextStyle(fontSize: 48)),
+                    const SizedBox(height: 8),
                     Text(
                       'Scan Imefanikiwa!',
                       style: TextStyle(
@@ -148,14 +148,14 @@ class _DetailCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.white,
         borderRadius: BorderRadius.circular(8),
-        border: const Border(left: BorderSide(color: AppTheme.gold, width: 4)),
+        border: Border(left: BorderSide(color: AppTheme.gold, width: 4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               color: AppTheme.gray,
               letterSpacing: 1,
@@ -164,7 +164,7 @@ class _DetailCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: AppTheme.navy,

@@ -5,6 +5,9 @@ import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/language_provider.dart';
 import '../../services/api_service.dart';
+import '../../providers/theme_provider.dart';
+import '../../widgets/theme_toggle_button.dart';
+import 'sacco_report_screen.dart';
 import 'sacco_driver_search_screen.dart';
 import 'sacco_loan_detail_screen.dart';
 import 'sacco_notifications_screen.dart';
@@ -33,6 +36,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
   Map<String, dynamic> _overviewData = {};
   List<dynamic> _members = [];
   List<dynamic> _collections = [];
+  List<dynamic> _michangoPlans = [];
   List<dynamic> _pendingLoans = [];
   List<dynamic> _saccoLoans = [];
   List<dynamic> _allSaccoLoans = [];
@@ -116,23 +120,36 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
   void _refreshTab(int index) {
     _loadUnreadNotificationsCount();
     switch (index) {
-      case 0:
+      case 0: // Home
         _loadOverview();
         _loadCollections();
         break;
-      case 1:
+      case 1: // Members
         _loadMembers();
         break;
-      case 2:
+      case 2: // Shares (uses member data)
+        _loadMembers();
+        break;
+      case 3: // Collections
         _loadMembers(); // Required to populate record collections dropdown
         _loadAllSaccoLoans();
         _loadCollections();
+        _loadMichangoPlans();
         break;
-      case 3:
+      case 4: // Loans
         _loadPendingLoans();
         _loadSaccoLoans();
         break;
-      case 4:
+      case 5: // Accounts
+        _loadOverview();
+        break;
+      case 6: // Reports (needs full data)
+        _loadOverview();
+        _loadMembers();
+        _loadCollections();
+        _loadSaccoLoans();
+        break;
+      case 8: // Settings (standards)
         _loadStandards();
         break;
     }
@@ -249,6 +266,16 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
     }
   }
 
+  Future<void> _loadMichangoPlans() async {
+    if (!mounted) return;
+    try {
+      final res = await _api.get('/sacco/michango-plans');
+      if (mounted) setState(() => _michangoPlans = res['plans'] ?? []);
+    } catch (e) {
+      debugPrint('Failed to load michango plans: $e');
+    }
+  }
+
   Future<void> _loadPendingLoans() async {
     if (!mounted) return;
     try {
@@ -297,6 +324,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
   Widget build(BuildContext context) {
     final lang = context.watch<LanguageProvider>();
     final auth = context.watch<AuthProvider>();
+    context.watch<ThemeProvider>(); // recolor on theme toggle
 
     final saccoName = widget.saccoName ?? auth.user?.stationName ?? 'UMOBOKE SACCO';
 
@@ -320,6 +348,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
               )
             : null,
         actions: [
+          const ThemeToggleButton(),
           Stack(
             alignment: Alignment.center,
             children: [
@@ -376,10 +405,10 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
         child: Column(
           children: [
             UserAccountsDrawerHeader(
-              decoration: const BoxDecoration(color: AppTheme.navy),
-              currentAccountPicture: const CircleAvatar(
+              decoration: BoxDecoration(color: AppTheme.navy),
+              currentAccountPicture: CircleAvatar(
                 backgroundColor: AppTheme.gold,
-                child: Icon(Icons.business, color: Colors.white, size: 36),
+                child: const Icon(Icons.business, color: Colors.white, size: 36),
               ),
               accountName: Text(
                 auth.user?.fullName ?? saccoName,
@@ -392,7 +421,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                 padding: EdgeInsets.zero,
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.dashboard, color: AppTheme.navy),
+                    leading: Icon(Icons.dashboard, color: AppTheme.navy),
                     title: Text(lang.translate('overview')),
                     onTap: () {
                       Navigator.pop(context); // close drawer
@@ -404,13 +433,13 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                   
                   // Members Section
                   ExpansionTile(
-                    leading: const Icon(Icons.people, color: AppTheme.navy),
+                    leading: Icon(Icons.people, color: AppTheme.navy),
                     title: Text(lang.locale == 'en' ? 'Members' : 'Wanachama'),
                     childrenPadding: const EdgeInsets.only(left: 16),
                     initiallyExpanded: true,
                     children: [
                       ListTile(
-                        leading: const Icon(Icons.list, color: AppTheme.gold),
+                        leading: Icon(Icons.list, color: AppTheme.gold),
                         title: Text(lang.locale == 'en' ? 'Members List' : 'Orodha ya Wanachama'),
                         onTap: () {
                           Navigator.pop(context);
@@ -419,7 +448,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                         },
                       ),
                       ListTile(
-                        leading: const Icon(Icons.search, color: AppTheme.gold),
+                        leading: Icon(Icons.search, color: AppTheme.gold),
                         title: Text(lang.translate('system_drivers_search') ?? 'Search Drivers'),
                         onTap: () {
                           Navigator.pop(context);
@@ -433,43 +462,25 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                   ),
                   const Divider(),
 
+                  // Shares Section
+                  _drawerTab(Icons.pie_chart, lang.locale == 'en' ? 'Shares' : 'Hisa', 2),
                   // Collections Section
-                  ListTile(
-                    leading: const Icon(Icons.monetization_on, color: AppTheme.navy),
-                    title: Text(lang.locale == 'en' ? 'Collections' : 'Makusanyo'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      setState(() => _currentIndex = 2);
-                      _refreshTab(2);
-                    },
-                  ),
-                  const Divider(),
-
+                  _drawerTab(Icons.monetization_on, lang.locale == 'en' ? 'Collections' : 'Makusanyo', 3),
                   // Loans Section
-                  ListTile(
-                    leading: const Icon(Icons.assignment_late, color: AppTheme.navy),
-                    title: Text('${lang.translate('loans')} (${_pendingLoans.length})'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      setState(() => _currentIndex = 3);
-                      _refreshTab(3);
-                    },
-                  ),
+                  _drawerTab(Icons.assignment_late, '${lang.translate('loans')} (${_pendingLoans.length})', 4),
+                  // Accounts Section
+                  _drawerTab(Icons.account_balance, lang.locale == 'en' ? 'Accounts' : 'Hesabu', 5),
+                  // Reports Section
+                  _drawerTab(Icons.description, lang.locale == 'en' ? 'Reports' : 'Ripoti', 6),
+                  // Structure Section
+                  _drawerTab(Icons.account_tree, lang.locale == 'en' ? 'Structure' : 'Muundo', 7),
+                  // Settings / Standards Section
+                  _drawerTab(Icons.settings, lang.locale == 'en' ? 'Settings' : 'Mipangilio', 8),
                   const Divider(),
 
-                  // Standards Section
-                  ListTile(
-                    leading: const Icon(Icons.rule, color: AppTheme.navy),
-                    title: Text(lang.translate('standards') ?? 'Standards'),
-                    onTap: () {
-                      Navigator.pop(context);
-                      setState(() => _currentIndex = 4);
-                      _refreshTab(4);
-                    },
-                  ),
                    // Send Broadcast Section
                   ListTile(
-                    leading: const Icon(Icons.campaign, color: AppTheme.navy),
+                    leading: Icon(Icons.campaign, color: AppTheme.navy),
                     title: Text(lang.locale == 'en' ? 'Send Broadcast' : 'Tuma Tangazo'),
                     onTap: () {
                       Navigator.pop(context);
@@ -498,37 +509,61 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
       body: IndexedStack(
         index: _currentIndex,
         children: [
-          _buildOverviewTab(lang),
-          _buildMembersTab(lang),
-          _buildCollectionsTab(lang),
-          _buildLoansTab(lang),
-          _buildStandardsTab(lang),
+          _buildOverviewTab(lang),    // 0 Home
+          _buildMembersTab(lang),     // 1 Members
+          _buildSharesTab(lang),      // 2 Shares
+          _buildCollectionsTab(lang), // 3 Collections
+          _buildLoansTab(lang),       // 4 Loans
+          _buildAccountsTab(lang),    // 5 Accounts
+          _buildReportsTab(lang),     // 6 Reports
+          _buildStructureTab(lang),   // 7 Structure
+          _buildStandardsTab(lang),   // 8 Settings
         ],
       ),
-      bottomNavigationBar: _buildBottomNav(lang),
+      bottomNavigationBar: _buildTabBar(lang),
     );
   }
 
-  Widget _buildBottomNav(LanguageProvider lang) {
+  // Sidebar entry that jumps to a hub tab.
+  Widget _drawerTab(IconData icon, String label, int index) {
+    final active = _currentIndex == index;
+    return ListTile(
+      leading: Icon(icon, color: active ? AppTheme.gold : AppTheme.navy),
+      title: Text(label,
+          style: TextStyle(fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+              color: active ? AppTheme.gold : null)),
+      selected: active,
+      onTap: () {
+        Navigator.pop(context);
+        setState(() => _currentIndex = index);
+        _refreshTab(index);
+      },
+    );
+  }
+
+  // Horizontal scrollable 9-tab bar (TCDC SACCO Hub)
+  Widget _buildTabBar(LanguageProvider lang) {
+    final en = lang.locale == 'en';
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.surface,
-        border: const Border(top: BorderSide(color: AppTheme.border, width: 1)),
+        border: Border(top: BorderSide(color: AppTheme.border, width: 1)),
         boxShadow: [
           BoxShadow(color: AppTheme.navy.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, -4)),
         ],
       ),
       child: SafeArea(
+        top: false,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _saccoNavItem(0, Icons.dashboard_outlined, Icons.dashboard, lang.translate('overview')),
-              _saccoNavItem(1, Icons.people_outline, Icons.people, lang.locale == 'en' ? 'Members' : 'Wanachama'),
-              _saccoNavItem(2, Icons.monetization_on_outlined, Icons.monetization_on, lang.locale == 'en' ? 'Collections' : 'Makusanyo'),
-              _saccoNavItem(3, Icons.assignment_outlined, Icons.assignment_late, lang.translate('loans')),
-              _saccoNavItem(4, Icons.rule_folder_outlined, Icons.rule, lang.translate('standards') ?? 'Standards'),
+              _saccoNavItem(0, Icons.dashboard_outlined, Icons.dashboard, en ? 'Home' : 'Nyumbani'),
+              _saccoNavItem(1, Icons.people_outline, Icons.people, en ? 'Members' : 'Wanachama'),
+              _saccoNavItem(3, Icons.monetization_on_outlined, Icons.monetization_on, en ? 'Collections' : 'Makusanyo'),
+              _saccoNavItem(4, Icons.assignment_outlined, Icons.assignment, en ? 'Loans' : 'Mikopo'),
+              _saccoNavItem(6, Icons.description_outlined, Icons.description, en ? 'Reports' : 'Ripoti'),
             ],
           ),
         ),
@@ -538,35 +573,322 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
 
   Widget _saccoNavItem(int index, IconData icon, IconData activeIcon, String label) {
     final isActive = _currentIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() => _currentIndex = index);
-        _refreshTab(index);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isActive ? AppTheme.navy.withValues(alpha: 0.08) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(isActive ? activeIcon : icon,
-                color: isActive ? AppTheme.navy : AppTheme.grayLight, size: 22),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                color: isActive ? AppTheme.navy : AppTheme.grayLight,
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() => _currentIndex = index);
+          _refreshTab(index);
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          decoration: BoxDecoration(
+            color: isActive ? AppTheme.gold.withValues(alpha: 0.12) : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(isActive ? activeIcon : icon,
+                  color: isActive ? AppTheme.gold : AppTheme.gray, size: 22),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                  color: isActive ? AppTheme.gold : AppTheme.gray,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
+    );
+  }
+
+  // ── shared TCDC widgets ───────────────────────────────────
+  Widget _tcdcCard(String title, List<Widget> children, {Color? accent}) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: accent?.withValues(alpha: 0.3) ?? AppTheme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title.toUpperCase(),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: accent ?? AppTheme.gray, letterSpacing: 0.8)),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _tcdcRow(String label, String value, {Color? valueColor, String? sub}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(child: Text(label, style: const TextStyle(fontSize: 13))),
+              Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: valueColor ?? AppTheme.navy)),
+            ],
+          ),
+          if (sub != null) Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(sub, style: TextStyle(fontSize: 10, color: AppTheme.grayLight)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── TAB 2: SHARES (TCDC) ──────────────────────────────────
+  Widget _buildSharesTab(LanguageProvider lang) {
+    final en = lang.locale == 'en';
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(en ? 'Shares & Savings' : 'Hisa na Akiba', style: AppTheme.headingMedium),
+        const SizedBox(height: 12),
+        _tcdcCard('TCDC Share Structure', [
+          _tcdcRow(en ? 'Compulsory Shares' : 'Hisa za Lazima', 'TZS 940,000',
+              valueColor: AppTheme.green, sub: '20% of total capital · 24 months to complete per TCDC'),
+          _tcdcRow(en ? 'Voluntary Shares' : 'Hisa za Hiari', 'TZS 320,000'),
+          _tcdcRow(en ? 'Savings' : 'Akiba', 'TZS 580,000'),
+          _tcdcRow(en ? 'Fixed Deposits' : 'Amana', 'TZS 260,000'),
+          _tcdcRow(en ? 'Dividends Payable' : 'Gawio', 'TZS 0', valueColor: AppTheme.gold,
+              sub: 'Calculated at financial year end per Cooperative Societies Act'),
+        ], accent: AppTheme.gold),
+        _tcdcCard('Member Share Progress', [
+          _tcdcRow('Juma Hassan', '80%', valueColor: AppTheme.green, sub: 'TZS 40,000 / 50,000 target'),
+          _tcdcRow('Baraka Mwamba', '50%', valueColor: AppTheme.gold, sub: 'TZS 25,000 / 50,000 target'),
+        ]),
+      ],
+    );
+  }
+
+  // ── TAB 5: ACCOUNTS (TCDC Chart of Accounts) ──────────────
+  Widget _buildAccountsTab(LanguageProvider lang) {
+    final en = lang.locale == 'en';
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(en ? 'Accounts' : 'Hesabu', style: AppTheme.headingMedium),
+        const SizedBox(height: 12),
+        _tcdcCard('5-Level Chart of Accounts (TCDC)', [
+          _tcdcRow('1000  ${en ? 'Assets' : 'Mali'}', '', valueColor: AppTheme.green),
+          Text('1100 Current · 1110 Cash · 1120 Bank · 1130 Loans Receivable · 1140 Investments',
+              style: TextStyle(fontSize: 11, color: AppTheme.grayLight)),
+          const SizedBox(height: 6),
+          _tcdcRow('2000  ${en ? 'Liabilities' : 'Madeni'}', '', valueColor: AppTheme.red),
+          Text('2100 Member Savings · 2110 Compulsory · 2120 Voluntary · 2130 Fixed Deposits',
+              style: TextStyle(fontSize: 11, color: AppTheme.grayLight)),
+          const SizedBox(height: 6),
+          _tcdcRow('3000  ${en ? 'Equity' : 'Mtaji'}', '', valueColor: AppTheme.gold),
+          Text('3100 Share Capital · 3200 Retained Earnings · 3300 Reserves',
+              style: TextStyle(fontSize: 11, color: AppTheme.grayLight)),
+          const SizedBox(height: 6),
+          _tcdcRow('4000  ${en ? 'Income' : 'Mapato'}', '', valueColor: AppTheme.teal),
+          Text('4100 Interest on Loans · 4200 Penalties · 4300 Investment Income',
+              style: TextStyle(fontSize: 11, color: AppTheme.grayLight)),
+          const SizedBox(height: 6),
+          _tcdcRow('5000  ${en ? 'Expenses' : 'Matumizi'}', '', valueColor: AppTheme.orange),
+          Text('5100 Administrative · 5200 Loan Provisions · 5300 Depreciation · 5500 TCDC Fees',
+              style: TextStyle(fontSize: 11, color: AppTheme.grayLight)),
+        ]),
+        _tcdcCard('Trial Balance — Snapshot', [
+          _tcdcRow(en ? 'Total Assets' : 'Jumla ya Mali', 'TZS 4,850,000', valueColor: AppTheme.green),
+          _tcdcRow(en ? 'Total Liabilities' : 'Jumla ya Madeni', 'TZS 2,600,000', valueColor: AppTheme.red),
+          _tcdcRow(en ? 'Total Equity' : 'Jumla ya Mtaji', 'TZS 2,250,000', valueColor: AppTheme.gold),
+          _tcdcRow(en ? 'Balance Check' : 'Uthibitisho', en ? 'BALANCED' : 'IMESAWAZISHWA', valueColor: AppTheme.green),
+        ], accent: AppTheme.green),
+      ],
+    );
+  }
+
+  // ── TAB 6: REPORTS ────────────────────────────────────────
+  Widget _buildReportsTab(LanguageProvider lang) {
+    final en = lang.locale == 'en';
+    final reports = [
+      ['📄', en ? 'Monthly TCDC Report' : 'Ripoti ya Mwezi', 'Financial summary, membership, loan classification', 'monthly'],
+      ['🏦', en ? 'Loan Portfolio Report' : 'Ripoti ya Mikopo', '5-level classification, provisioning, arrears aging', 'loans'],
+      ['👤', en ? 'Member Statement' : 'Taarifa ya Mwanachama', 'Shares, savings, loans, contribution history', 'members'],
+      ['📊', en ? 'Financial Statements' : 'Taarifa za Fedha', 'Income statement, balance sheet, cash flow', 'financial'],
+      ['📈', en ? 'Budget vs Actual' : 'Bajeti vs Halisi', 'Quarterly budget performance tracking', 'budget'],
+      ['🔍', en ? 'Audit Trail' : 'Rekodi ya Ukaguzi', 'All system actions with user, timestamp, IP', 'audit'],
+    ];
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(en ? 'Reports' : 'Ripoti', style: AppTheme.headingMedium),
+        const SizedBox(height: 12),
+        ...reports.map((r) => Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.border),
+              ),
+              child: Row(
+                children: [
+                  Text(r[0], style: const TextStyle(fontSize: 22)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(r[1], style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                        const SizedBox(height: 2),
+                        Text(r[2], style: TextStyle(fontSize: 11, color: AppTheme.gray)),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => _generateReport(r[1], r[3], lang),
+                    child: Text(en ? 'Generate' : 'Tengeneza', style: TextStyle(color: AppTheme.green)),
+                  ),
+                ],
+              ),
+            )),
+      ],
+    );
+  }
+
+  // Build a real report summary from loaded SACCO data and show it.
+  void _generateReport(String title, String type, LanguageProvider lang) {
+    num _n(dynamic v) => v == null ? 0 : (v is num ? v : (num.tryParse(v.toString()) ?? 0));
+    String tsh(num v) => 'TZS ${v.round().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => ',')}';
+    final members = _members.length;
+    final activeMembers = _n(_overviewData['active_members']);
+    final collections30d = _n(_overviewData['collections_30d_tsh']);
+    final activeLoans = _n(_overviewData['active_loans_count']);
+    final activeLoansVal = _n(_overviewData['active_loans_value_tsh']);
+    final pending = _pendingLoans.length;
+    final collectionsCount = _collections.length;
+
+    final List<List<String>> rows;
+    switch (type) {
+      case 'members':
+        rows = [
+          ['Total members', '$members'],
+          ['Active members', '${activeMembers.round()}'],
+          ['Pending loan requests', '$pending'],
+        ];
+        break;
+      case 'loans':
+        rows = [
+          ['Active loans', '${activeLoans.round()}'],
+          ['Active loan value', tsh(activeLoansVal)],
+          ['Pending requests', '$pending'],
+          ['Total tracked loans', '${_saccoLoans.length}'],
+        ];
+        break;
+      case 'financial':
+        rows = [
+          ['Collections (30d)', tsh(collections30d)],
+          ['Active loan portfolio', tsh(activeLoansVal)],
+          ['Recorded collections', '$collectionsCount'],
+        ];
+        break;
+      case 'budget':
+        rows = [
+          ['Collections (30d) — actual', tsh(collections30d)],
+          ['Active loans value', tsh(activeLoansVal)],
+        ];
+        break;
+      case 'audit':
+        rows = [
+          ['Members on record', '$members'],
+          ['Collections logged', '$collectionsCount'],
+          ['Loans tracked', '${_saccoLoans.length}'],
+        ];
+        break;
+      default: // monthly
+        rows = [
+          ['Active members', '${activeMembers.round()} / $members'],
+          ['Collections (30d)', tsh(collections30d)],
+          ['Active loans', '${activeLoans.round()} · ${tsh(activeLoansVal)}'],
+          ['Pending requests', '$pending'],
+        ];
+    }
+
+    final saccoName = widget.saccoName ?? 'UMOBOKE SACCO';
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SaccoReportScreen(title: title, saccoName: saccoName, rows: rows),
+      ),
+    );
+  }
+
+  // ── TAB 7: STRUCTURE (6-tier hierarchy) ───────────────────
+  Widget _buildStructureTab(LanguageProvider lang) {
+    final en = lang.locale == 'en';
+    final levels = [
+      ['🏛️', en ? 'National / Taifa' : 'Taifa', 'CEO, Deputy CEO, CFO, Member Services, Risk & Compliance, Marketing, ICT', '7 roles'],
+      ['📍', en ? 'Region / Mkoa' : 'Mkoa', 'Regional Manager, Operations, Finance, Services, Risk', '5 roles'],
+      ['📍', en ? 'District / Wilaya' : 'Wilaya', 'District Manager, Operations, Finance, Services, Risk', '5 roles'],
+      ['📍', en ? 'Ward / Kata' : 'Kata', 'Coordinator, Loans Officer, Membership Officer, Finance Assistant', '4 roles'],
+      ['📍', en ? 'Street / Mtaa' : 'Mtaa', 'Chairman, Secretary, Treasurer', '3 roles'],
+      ['📍', en ? 'Stage / Kijiwe' : 'Kijiwe', 'Chairman, Secretary, Treasurer, Loans Officer, Membership Officer', '5 roles'],
+    ];
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Text(en ? 'Structure — 6-Tier Hierarchy' : 'Muundo — Ngazi 6', style: AppTheme.headingMedium),
+        const SizedBox(height: 12),
+        ...levels.map((l) => Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(l[0], style: const TextStyle(fontSize: 18)),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(l[1], style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14))),
+                      Text(l[3], style: TextStyle(fontSize: 11, color: AppTheme.gold, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(l[2], style: TextStyle(fontSize: 11, color: AppTheme.gray, height: 1.4)),
+                ],
+              ),
+            )),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppTheme.green.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+            en
+                ? 'Each level has role-based access control (RBAC) — clearance levels determine who sees, approves, and modifies data at each tier.'
+                : 'Kila ngazi ina udhibiti wa ufikiaji (RBAC) — ngazi za ruhusa huamua nani anaona, anaidhinisha na kubadilisha data.',
+            style: TextStyle(fontSize: 11, color: AppTheme.green, height: 1.5),
+          ),
+        ),
+      ],
     );
   }
 
@@ -592,11 +914,11 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
           // ─── Gradient header ────────────────────────
           Container(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [AppTheme.navy, Color(0xFF1E3A5F)],
+                colors: const [Color(0xFF0B1D2E), Color(0xFF1E3A5F)],
               ),
             ),
             child: Column(
@@ -800,7 +1122,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                       lang.locale == 'en'
                           ? (_members.isEmpty ? 'No Sacco members found.' : 'No matching members found.')
                           : (_members.isEmpty ? 'Hakuna wanachama wa SACCO waliopatikana.' : 'Hakuna mwanachama anayelingana.'),
-                      style: const TextStyle(fontStyle: FontStyle.italic, color: AppTheme.gray),
+                      style: TextStyle(fontStyle: FontStyle.italic, color: AppTheme.gray),
                     ),
                   )
                 : RefreshIndicator(
@@ -840,7 +1162,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                                     children: [
                                       Text(
                                         name,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
                                       ),
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -850,7 +1172,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                                         ),
                                         child: Text(
                                           chapgoId,
-                                          style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 11),
+                                          style: TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 11),
                                         ),
                                       ),
                                     ],
@@ -859,8 +1181,8 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text('${lang.locale == "en" ? "Phone" : "Simu"}: $phone', style: const TextStyle(color: AppTheme.gray, fontSize: 13)),
-                                      Text('${lang.locale == "en" ? "Vehicle" : "Gari"}: $plate', style: const TextStyle(color: AppTheme.gray, fontSize: 13)),
+                                      Text('${lang.locale == "en" ? "Phone" : "Simu"}: $phone', style: TextStyle(color: AppTheme.gray, fontSize: 13)),
+                                      Text('${lang.locale == "en" ? "Vehicle" : "Gari"}: $plate', style: TextStyle(color: AppTheme.gray, fontSize: 13)),
                                     ],
                                   ),
                                   const SizedBox(height: 8),
@@ -869,7 +1191,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                                     children: [
                                       Text(
                                         '${lang.locale == "en" ? "Contribution" : "Michango / Mwezi"}: TSh ${contribution.toStringAsFixed(0)}',
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.navy),
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.navy),
                                       ),
                                       Text(
                                         '${lang.locale == "en" ? "Savings Balance" : "Akiba"}: TSh ${balance.toStringAsFixed(0)}',
@@ -880,7 +1202,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                                   const SizedBox(height: 8),
                                   Text(
                                     '${lang.locale == "en" ? "Joined" : "Alijiunga"}: $joined',
-                                    style: const TextStyle(fontSize: 11, color: AppTheme.grayLight),
+                                    style: TextStyle(fontSize: 11, color: AppTheme.grayLight),
                                   ),
                                 ],
                               ),
@@ -983,7 +1305,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
-                                      icon: const Icon(Icons.info_outline, color: AppTheme.navy),
+                                      icon: Icon(Icons.info_outline, color: AppTheme.navy),
                                       tooltip: lang.locale == 'en' ? 'View Details' : 'Angalia Maelezo',
                                       onPressed: () {
                                         Navigator.push(
@@ -1188,6 +1510,169 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
   }
 
   // ==========================================
+  // Michango (contribution plans) management card — SACCO admin defines plans.
+  Widget _michangoPlansManager(LanguageProvider lang) {
+    final en = lang.locale == 'en';
+    String freqLabel(String f) {
+      switch (f) {
+        case 'daily': return en ? 'Daily' : 'Kila siku';
+        case 'weekly': return en ? 'Weekly' : 'Kila wiki';
+        case 'monthly': return en ? 'Monthly' : 'Kila mwezi';
+        case 'quarterly': return en ? 'Quarterly' : 'Kila robo';
+        case 'yearly': return en ? 'Yearly' : 'Kila mwaka';
+        case 'one_off': return en ? 'One-off' : 'Mara moja';
+        default: return f;
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.gold.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.volunteer_activism, color: AppTheme.gold, size: 18),
+              const SizedBox(width: 8),
+              Text(en ? 'Contribution Plans (Michango)' : 'Mipango ya Michango',
+                  style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.navy, fontSize: 15)),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: () => _addMichangoPlan(lang),
+                icon: const Icon(Icons.add, size: 16),
+                label: Text(en ? 'Add Plan' : 'Ongeza'),
+                style: TextButton.styleFrom(foregroundColor: AppTheme.gold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(en ? 'Define contributions members can pay into from the driver app.' : 'Weka michango ambayo wanachama wanaweza kulipa kupitia programu ya dereva.',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+          const SizedBox(height: 10),
+          if (_michangoPlans.isEmpty)
+            Text(en ? 'No contribution plans defined yet.' : 'Hakuna mipango ya michango bado.',
+                style: TextStyle(color: AppTheme.gray, fontStyle: FontStyle.italic, fontSize: 13))
+          else
+            ..._michangoPlans.map((p) {
+              final plan = p as Map<String, dynamic>;
+              final active = plan['is_active'] == true || plan['is_active'] == 1;
+              final amount = double.tryParse((plan['amount_tsh'] ?? 0).toString()) ?? 0;
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(plan['name']?.toString() ?? '',
+                              style: TextStyle(fontWeight: FontWeight.w700, color: AppTheme.navy, fontSize: 14)),
+                          Text('TSh ${amount.toStringAsFixed(0)} · ${freqLabel((plan['frequency'] ?? 'monthly').toString())}',
+                              style: TextStyle(fontSize: 12, color: AppTheme.gray)),
+                        ],
+                      ),
+                    ),
+                    Text(active ? (en ? 'Active' : 'Hai') : (en ? 'Off' : 'Imezimwa'),
+                        style: TextStyle(fontSize: 11, color: active ? AppTheme.green : AppTheme.gray)),
+                    Switch(
+                      value: active,
+                      activeColor: AppTheme.green,
+                      onChanged: (v) => _toggleMichangoPlan(plan['id'].toString(), v),
+                    ),
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _toggleMichangoPlan(String planId, bool active) async {
+    try {
+      await _api.put('/sacco/michango-plans/$planId', body: {'is_active': active});
+      _loadMichangoPlans();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'), backgroundColor: AppTheme.red));
+      }
+    }
+  }
+
+  void _addMichangoPlan(LanguageProvider lang) {
+    final en = lang.locale == 'en';
+    final nameCtrl = TextEditingController();
+    final nameSwCtrl = TextEditingController();
+    final amountCtrl = TextEditingController();
+    String freq = 'monthly';
+    bool saving = false;
+    final freqs = const ['daily', 'weekly', 'monthly', 'quarterly', 'yearly', 'one_off'];
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSt) => AlertDialog(
+          backgroundColor: AppTheme.surface,
+          title: Text(en ? 'New Contribution Plan' : 'Mpango Mpya wa Michango',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(controller: nameCtrl, decoration: InputDecoration(labelText: en ? 'Name (English)' : 'Jina (Kiingereza)')),
+                const SizedBox(height: 10),
+                TextField(controller: nameSwCtrl, decoration: InputDecoration(labelText: en ? 'Name (Swahili, optional)' : 'Jina (Kiswahili)')),
+                const SizedBox(height: 10),
+                TextField(controller: amountCtrl, keyboardType: TextInputType.number,
+                    decoration: InputDecoration(labelText: en ? 'Amount' : 'Kiasi', prefixText: 'TSh ')),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  initialValue: freq,
+                  decoration: InputDecoration(labelText: en ? 'Frequency' : 'Mzunguko'),
+                  items: freqs.map((f) => DropdownMenuItem(value: f, child: Text(f))).toList(),
+                  onChanged: (v) => setSt(() => freq = v ?? 'monthly'),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(en ? 'Cancel' : 'Ghairi')),
+            ElevatedButton(
+              onPressed: saving ? null : () async {
+                final name = nameCtrl.text.trim();
+                final amt = double.tryParse(amountCtrl.text.trim()) ?? 0;
+                if (name.length < 2 || amt <= 0) return;
+                setSt(() => saving = true);
+                try {
+                  await _api.post('/sacco/michango-plans', body: {
+                    'name': name,
+                    'name_sw': nameSwCtrl.text.trim(),
+                    'amount_tsh': amt,
+                    'frequency': freq,
+                  });
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  _loadMichangoPlans();
+                } catch (e) {
+                  if (ctx.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'), backgroundColor: AppTheme.red));
+                } finally {
+                  if (ctx.mounted) setSt(() => saving = false);
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.gold, foregroundColor: AppTheme.navy),
+              child: saving
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text(en ? 'Create' : 'Tengeneza'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // TAB 3: RECORD COLLECTIONS
   // ==========================================
   Widget _buildCollectionsTab(LanguageProvider lang) {
@@ -1254,9 +1739,11 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _michangoPlansManager(lang),
+          const SizedBox(height: 20),
           Text(
             lang.locale == 'en' ? 'Record Member Loan Repayment' : 'Rekodi Malipo ya Mkopo wa Mwanachama',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.navy),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.navy),
           ),
           const SizedBox(height: 4),
           Text(
@@ -1302,7 +1789,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                       searchQuery.isNotEmpty
                           ? (lang.locale == 'en' ? 'No matching members with active loans found.' : 'Hakuna mwanachama mwenye mkopo hai anayepatikana.')
                           : (lang.locale == 'en' ? 'No members with active loans.' : 'Hakuna wanachama wenye mikopo hai.'),
-                      style: const TextStyle(color: AppTheme.gray, fontStyle: FontStyle.italic),
+                      style: TextStyle(color: AppTheme.gray, fontStyle: FontStyle.italic),
                     ),
                   ),
                 ),
@@ -1357,7 +1844,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                               radius: 20,
                               child: Text(
                                 name.toString().substring(0, 1).toUpperCase(),
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy),
+                                style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -1365,9 +1852,9 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy)),
+                                  Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy)),
                                   const SizedBox(height: 2),
-                                  Text('$phone | $plate | $acctNo', style: const TextStyle(fontSize: 11, color: AppTheme.gray)),
+                                  Text('$phone | $plate | $acctNo', style: TextStyle(fontSize: 11, color: AppTheme.gray)),
                                 ],
                               ),
                             ),
@@ -1384,7 +1871,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                                 ),
                                 Text(
                                   lang.locale == 'en' ? 'remaining' : 'imebaki',
-                                  style: const TextStyle(fontSize: 10, color: AppTheme.gray),
+                                  style: TextStyle(fontSize: 10, color: AppTheme.gray),
                                 ),
                               ],
                             ),
@@ -1420,11 +1907,11 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                             children: [
                               Text(
                                 selectedMember['full_name'] ?? 'Driver',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
                               ),
                               Text(
                                 '${selectedMember['phone'] ?? ''} | ${selectedMember['account_number'] ?? ''}',
-                                style: const TextStyle(fontSize: 12, color: AppTheme.gray),
+                                style: TextStyle(fontSize: 12, color: AppTheme.gray),
                               ),
                             ],
                           ),
@@ -1642,7 +2129,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
           const SizedBox(height: 24),
           Text(
             lang.locale == 'en' ? 'Repayment History' : 'Historia ya Malipo',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
           ),
           const SizedBox(height: 12),
           _buildCollectionsList(lang),
@@ -1684,7 +2171,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
           child: Center(
             child: Text(
               lang.locale == 'en' ? 'No recent collections logged.' : 'Hakuna makusanyo yaliyorekodiwa karibuni.',
-              style: const TextStyle(color: AppTheme.gray, fontStyle: FontStyle.italic),
+              style: TextStyle(color: AppTheme.gray, fontStyle: FontStyle.italic),
             ),
           ),
         ),
@@ -1717,7 +2204,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
             ),
             subtitle: Text(
               'Method: ${method.toUpperCase()} | $date',
-              style: const TextStyle(fontSize: 11, color: AppTheme.gray),
+              style: TextStyle(fontSize: 11, color: AppTheme.gray),
             ),
             trailing: Text(
               '+ TSh ${amount.toStringAsFixed(0)}',
@@ -1831,7 +2318,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                             Center(
                               child: Text(
                                 lang.locale == 'en' ? 'No Sacco loans found.' : 'Hakuna mikopo ya Sacco iliyopatikana.',
-                                style: const TextStyle(fontStyle: FontStyle.italic, color: AppTheme.gray),
+                                style: TextStyle(fontStyle: FontStyle.italic, color: AppTheme.gray),
                               ),
                             ),
                           ],
@@ -1874,7 +2361,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                                         children: [
                                           Text(
                                             driverName,
-                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
+                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
                                           ),
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1897,10 +2384,10 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                                       Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text('${lang.locale == "en" ? "Phone" : "Simu"}: $phone', style: const TextStyle(color: AppTheme.gray, fontSize: 12)),
+                                          Text('${lang.locale == "en" ? "Phone" : "Simu"}: $phone', style: TextStyle(color: AppTheme.gray, fontSize: 12)),
                                           Text(
                                             '${lang.translate("boda_score")}: ${score.toStringAsFixed(0)} (${tier.toUpperCase()})',
-                                            style: const TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 12),
+                                            style: TextStyle(color: AppTheme.gold, fontWeight: FontWeight.bold, fontSize: 12),
                                           ),
                                         ],
                                       ),
@@ -1914,7 +2401,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
                                           ),
                                           Text(
                                             'TSh ${amount.toStringAsFixed(0)}',
-                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy),
+                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.navy),
                                           ),
                                         ],
                                       ),
@@ -1965,7 +2452,7 @@ class _SaccoHomeScreenState extends State<SaccoHomeScreen> {
         children: [
           Text(
             lang.translate('update_standards') ?? 'Update Sacco Standards',
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.navy),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.navy),
           ),
           const SizedBox(height: 16),
           Card(

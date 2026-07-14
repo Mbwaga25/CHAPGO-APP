@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../config/theme.dart';
-import '../../providers/language_provider.dart';
+import '../config/theme.dart';
+import '../providers/language_provider.dart';
 
+/// The driver main menu (5 items), shown at the bottom of every driver
+/// sub-screen so the rider can jump to any main section from anywhere.
+///
+/// Tabs map 1:1 to the driver home IndexedStack:
+///   0 Home · 1 Scan · 2 My Money · 3 Credit · 4 Deliver · 5 Profile
+///
+/// [activeIndex] highlights one of the 5 items (0..4); pass -1 (default) when
+/// the current sub-screen doesn't correspond to a main tab.
 class DriverSubPageNavBar extends StatelessWidget {
   final int activeIndex;
-  final String type; // 'default', 'loans', 'stations'
-  final ValueChanged<int>? onTap; // Custom onTap callback for in-place actions
+  final String type; // retained for backwards compatibility (unused)
+  final ValueChanged<int>? onTap;
 
   const DriverSubPageNavBar({
     super.key,
@@ -18,144 +26,69 @@ class DriverSubPageNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lang = context.watch<LanguageProvider>();
+    final items = <List<dynamic>>[
+      [Icons.home_filled, lang.translate('nav_home')],
+      [Icons.qr_code_scanner, lang.translate('nav_scan')],
+      [Icons.account_balance_wallet, lang.translate('nav_money')],
+      [Icons.credit_score, lang.translate('nav_credit')],
+      [Icons.local_shipping, lang.translate('deliver')],
+      [Icons.person, lang.translate('nav_profile')],
+    ];
 
-    if (type == 'loans') {
-      return BottomNavigationBar(
-        currentIndex: activeIndex == -1 ? 0 : activeIndex,
-        selectedItemColor: activeIndex == -1 ? AppTheme.grayLight : AppTheme.gold,
-        unselectedItemColor: AppTheme.grayLight,
-        backgroundColor: AppTheme.white,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          if (onTap != null) {
-            onTap!(index);
-            return;
-          }
-          if (index == 0) {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/driver/home',
-              (route) => false,
-              arguments: {'tab': 0},
-            );
-          } else if (index == 1) {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/driver/loans',
-              (route) => route.isFirst,
-            );
-          } else if (index == 2) {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/driver/loans/list',
-              (route) => route.isFirst,
-            );
-          }
-        },
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.home_outlined),
-            activeIcon: const Icon(Icons.home),
-            label: lang.translate('preset_all') == 'All Time' ? 'Home' : 'Nyumbani',
+    return Container(
+      decoration: BoxDecoration(
+        color: DriverDark.navy,
+        border: Border(top: BorderSide(color: DriverDark.cardBorder)),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(items.length, (i) {
+              final active = activeIndex == i;
+              return Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    if (onTap != null) {
+                      onTap!(i);
+                      return;
+                    }
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/driver/home',
+                      (route) => false,
+                      arguments: {'tab': i},
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(items[i][0] as IconData,
+                            size: 22, color: active ? DriverDark.gold : DriverDark.grey),
+                        const SizedBox(height: 3),
+                        Text(
+                          items[i][1] as String,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                            color: active ? DriverDark.gold : DriverDark.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
           ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.add_circle_outline),
-            activeIcon: const Icon(Icons.add_circle),
-            label: lang.translate('menu_apply_loan'),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.list_alt),
-            activeIcon: const Icon(Icons.list_alt_rounded),
-            label: lang.translate('menu_loan_list'),
-          ),
-        ],
-      );
-    } else if (type == 'stations') {
-      return BottomNavigationBar(
-        currentIndex: activeIndex == -1 ? 0 : activeIndex,
-        selectedItemColor: activeIndex == -1 ? AppTheme.grayLight : AppTheme.gold,
-        unselectedItemColor: AppTheme.grayLight,
-        backgroundColor: AppTheme.white,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          if (onTap != null) {
-            onTap!(index);
-            return;
-          }
-          if (index == 0) {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/driver/home',
-              (route) => false,
-              arguments: {'tab': 0},
-            );
-          } else if (index == 1) {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/driver/stations/map',
-              (route) => route.isFirst,
-              arguments: {'tab': 0},
-            );
-          } else if (index == 2) {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/driver/stations/map',
-              (route) => route.isFirst,
-              arguments: {'tab': 1},
-            );
-          }
-        },
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.home_outlined),
-            activeIcon: const Icon(Icons.home),
-            label: lang.translate('preset_all') == 'All Time' ? 'Home' : 'Nyumbani',
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.map_outlined),
-            activeIcon: const Icon(Icons.map),
-            label: lang.translate('menu_stations_map'),
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.list_alt_outlined),
-            activeIcon: const Icon(Icons.list),
-            label: lang.translate('menu_stations_list'),
-          ),
-        ],
-      );
-    }
-
-    // Default main dashboard tabs
-    return BottomNavigationBar(
-      currentIndex: activeIndex == -1 ? 0 : activeIndex,
-      selectedItemColor: activeIndex == -1 ? AppTheme.grayLight : AppTheme.gold,
-      unselectedItemColor: AppTheme.grayLight,
-      backgroundColor: AppTheme.white,
-      onTap: (index) {
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/driver/home',
-          (route) => false,
-          arguments: {'tab': index},
-        );
-      },
-      items: [
-        BottomNavigationBarItem(
-          icon: const Icon(Icons.dashboard_outlined),
-          activeIcon: const Icon(Icons.dashboard),
-          label: lang.translate('overview'),
         ),
-        BottomNavigationBarItem(
-          icon: const Icon(Icons.account_balance_wallet_outlined),
-          activeIcon: const Icon(Icons.account_balance_wallet),
-          label: '${lang.translate('income')} / ${lang.translate('expenses')}',
-        ),
-        BottomNavigationBarItem(
-          icon: const Icon(Icons.trending_up_outlined),
-          activeIcon: const Icon(Icons.trending_up),
-          label: lang.translate('boda_score'),
-        ),
-      ],
+      ),
     );
   }
 }

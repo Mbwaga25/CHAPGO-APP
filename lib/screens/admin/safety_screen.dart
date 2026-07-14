@@ -72,20 +72,20 @@ class _SafetyScreenState extends State<SafetyScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 16),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Ripoti Wizi', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.navy)),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text('Active watchlist and recent theft alerts', style: TextStyle(fontSize: 14, color: AppTheme.gray)),
               ],
             ),
           ),
           _SectionHeader(title: 'Theft Alerts (last 48 hours)', onRefresh: _loadData),
           if (_alerts.isEmpty)
-            const Card(child: Padding(padding: EdgeInsets.all(24), child: Center(child: Text('No recent alerts', style: TextStyle(color: AppTheme.grayLight, fontStyle: FontStyle.italic)))))
+            Card(child: Padding(padding: const EdgeInsets.all(24), child: Center(child: Text('No recent alerts', style: TextStyle(color: AppTheme.grayLight, fontStyle: FontStyle.italic)))))
           else
             ..._alerts.map((a) => Card(
               margin: const EdgeInsets.only(bottom: 8),
@@ -99,8 +99,8 @@ class _SafetyScreenState extends State<SafetyScreen> {
                         children: [
                           Text(a.vehiclePlate, style: const TextStyle(fontWeight: FontWeight.w600)),
                           const SizedBox(height: 4),
-                          Text(a.stationName ?? '—', style: const TextStyle(fontSize: 12, color: AppTheme.gray)),
-                          Text(_formatDate(a.detectedAt), style: const TextStyle(fontSize: 12, color: AppTheme.gray)),
+                          Text(a.stationName ?? '—', style: TextStyle(fontSize: 12, color: AppTheme.gray)),
+                          Text(_formatDate(a.detectedAt), style: TextStyle(fontSize: 12, color: AppTheme.gray)),
                           Row(
                             children: [
                               Text(a.isNotified ? '✅ Notified' : '❌ Not notified', style: const TextStyle(fontSize: 12)),
@@ -114,16 +114,16 @@ class _SafetyScreenState extends State<SafetyScreen> {
                     if (!a.isNotified)
                       TextButton(
                         onPressed: () => _markNotified(a.id),
-                        child: const Text('Mark Notified', style: TextStyle(fontSize: 12, color: AppTheme.green)),
+                        child: Text('Mark Notified', style: TextStyle(fontSize: 12, color: AppTheme.green)),
                       ),
                   ],
                 ),
               ),
             )),
           const SizedBox(height: 24),
-          _SectionHeader(title: 'Active Watchlist', onRefresh: null),
+          const _SectionHeader(title: 'Active Watchlist', onRefresh: null),
           if (_watchlist.isEmpty)
-            const Card(child: Padding(padding: EdgeInsets.all(24), child: Center(child: Text('Watchlist is empty', style: TextStyle(color: AppTheme.grayLight, fontStyle: FontStyle.italic)))))
+            Card(child: Padding(padding: const EdgeInsets.all(24), child: Center(child: Text('Watchlist is empty', style: TextStyle(color: AppTheme.grayLight, fontStyle: FontStyle.italic)))))
           else
             ..._watchlist.map((w) => Card(
               margin: const EdgeInsets.only(bottom: 8),
@@ -136,7 +136,7 @@ class _SafetyScreenState extends State<SafetyScreen> {
                     Text('Location: ${w.lastKnownLocation ?? '—'}', style: const TextStyle(fontSize: 12)),
                   ],
                 ),
-                trailing: Text(w.reporterPhone ?? '', style: const TextStyle(fontSize: 12, color: AppTheme.gray)),
+                trailing: Text(w.reporterPhone ?? '', style: TextStyle(fontSize: 12, color: AppTheme.gray)),
               ),
             )),
         ],
@@ -159,7 +159,7 @@ class _SectionHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.navy)),
+        Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.navy)),
         if (onRefresh != null)
           TextButton.icon(
             onPressed: onRefresh,

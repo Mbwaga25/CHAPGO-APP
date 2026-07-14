@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'config/theme.dart';
+import 'config/api_config.dart';
 import 'providers/auth_provider.dart';
 import 'providers/language_provider.dart';
 import 'providers/cashflow_provider.dart';
+import 'providers/theme_provider.dart';
 import 'services/api_service.dart';
 import 'services/auth_service.dart';
 import 'screens/welcome_screen.dart';
@@ -27,9 +29,16 @@ import 'screens/driver/driver_loans_list_screen.dart';
 import 'screens/driver/driver_stations_map_screen.dart';
 import 'screens/driver/driver_evaluation_report_screen.dart';
 import 'screens/driver/driver_cashflow_page.dart';
+import 'screens/driver/driver_delivery_screen.dart';
+import 'screens/driver/driver_saccos_screen.dart';
 import 'screens/sacco/sacco_home_screen.dart';
+import 'widgets/auth_gate.dart';
+import 'models/user.dart';
 
-void main() {
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ApiConfig.checkHostFallback();
   runApp(const ChapgoApp());
 }
 
@@ -52,11 +61,15 @@ class ChapgoApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => CashflowProvider(),
         ),
+        ChangeNotifierProvider(
+          create: (_) => ThemeProvider(),
+        ),
       ],
-      child: MaterialApp(
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) => MaterialApp(
         title: 'Chapgo',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
+        theme: AppTheme.themeData,
         initialRoute: '/',
         onGenerateRoute: (settings) {
           switch (settings.name) {
@@ -82,84 +95,101 @@ class ChapgoApp extends StatelessWidget {
             // Station
             case '/station/home':
               return MaterialPageRoute(
-                builder: (_) => const StationHomeScreen(),
+                builder: (_) => const AuthGate(role: UserRole.stationOperator, child: StationHomeScreen()),
               );
             case '/station/scan':
               return MaterialPageRoute(
-                builder: (_) => const ScanScreen(),
+                builder: (_) => const AuthGate(role: UserRole.stationOperator, child: ScanScreen()),
               );
             case '/station/manual-qr':
               return MaterialPageRoute(
-                builder: (_) => const ManualQrScreen(),
+                builder: (_) => const AuthGate(role: UserRole.stationOperator, child: ManualQrScreen()),
               );
             case '/station/enter-scan':
               return MaterialPageRoute(
-                builder: (_) => const EnterScanScreen(),
+                builder: (_) => const AuthGate(role: UserRole.stationOperator, child: EnterScanScreen()),
               );
             case '/station/confirm':
               return MaterialPageRoute(
-                builder: (_) => const ConfirmScreen(),
+                builder: (_) => const AuthGate(role: UserRole.stationOperator, child: ConfirmScreen()),
               );
             case '/station/operators':
               return MaterialPageRoute(
-                builder: (_) => const OperatorsScreen(),
+                builder: (_) => const AuthGate(role: UserRole.stationOperator, child: OperatorsScreen()),
               );
 
             // Admin
             case '/admin/home':
               return MaterialPageRoute(
-                builder: (_) => const AdminHomeScreen(),
+                builder: (_) => const AuthGate(role: UserRole.admin, child: AdminHomeScreen()),
               );
 
             // Driver
             case '/driver/home':
               return MaterialPageRoute(
-                builder: (_) => const DriverHomeScreen(),
+                builder: (_) => const AuthGate(role: UserRole.driver, child: DriverHomeScreen()),
               );
             case '/driver/profile':
               return MaterialPageRoute(
-                builder: (_) => const DriverProfileScreen(),
+                builder: (_) => const AuthGate(role: UserRole.driver, child: DriverProfileScreen()),
               );
             case '/driver/qr-code':
               return MaterialPageRoute(
-                builder: (_) => const DriverQrScreen(),
+                builder: (_) => const AuthGate(role: UserRole.driver, child: DriverQrScreen()),
               );
             case '/driver/score':
               return MaterialPageRoute(
-                builder: (_) => const DriverScoreScreen(),
+                builder: (_) => const AuthGate(role: UserRole.driver, child: DriverScoreScreen()),
               );
             case '/driver/loans':
+              final args = settings.arguments as Map<String, dynamic>?;
               return MaterialPageRoute(
-                builder: (_) => const DriverLoansScreen(),
+                builder: (_) => AuthGate(
+                  role: UserRole.driver,
+                  child: DriverLoansScreen(
+                    saccoId: args?['sacco_id'] as String?,
+                    saccoName: args?['sacco_name'] as String?,
+                  ),
+                ),
               );
             case '/driver/notifications':
               return MaterialPageRoute(
-                builder: (_) => const DriverNotificationsScreen(),
+                builder: (_) => const AuthGate(role: UserRole.driver, child: DriverNotificationsScreen()),
                 settings: settings,
               );
             case '/driver/loans/list':
               return MaterialPageRoute(
-                builder: (_) => const DriverLoansListScreen(),
+                builder: (_) => const AuthGate(role: UserRole.driver, child: DriverLoansListScreen()),
                 settings: settings,
               );
             case '/driver/stations/map':
               return MaterialPageRoute(
-                builder: (_) => const DriverStationsMapScreen(),
+                builder: (_) => const AuthGate(role: UserRole.driver, child: DriverStationsMapScreen()),
                 settings: settings,
               );
             case '/driver/reports/evaluation':
               return MaterialPageRoute(
-                builder: (_) => const DriverEvaluationReportScreen(),
+                builder: (_) => const AuthGate(role: UserRole.driver, child: DriverEvaluationReportScreen()),
                 settings: settings,
               );
             case '/driver/cashflow':
               return MaterialPageRoute(
-                builder: (_) => const DriverCashflowPage(),
+                builder: (_) => const AuthGate(role: UserRole.driver, child: DriverCashflowPage()),
+                settings: settings,
+              );
+            case '/driver/delivery':
+              return MaterialPageRoute(
+                builder: (_) => const AuthGate(role: UserRole.driver, child: DriverDeliveryScreen()),
+                settings: settings,
+              );
+            case '/driver/saccos':
+              return MaterialPageRoute(
+                builder: (_) => const AuthGate(role: UserRole.driver, child: DriverSaccosScreen()),
                 settings: settings,
               );
             case '/sacco/home':
               return MaterialPageRoute(
-                builder: (_) => const SaccoHomeScreen(),
+                builder: (_) => const AuthGate(role: UserRole.saccoAdmin, child: SaccoHomeScreen()),
               );
 
             default:
@@ -168,6 +198,7 @@ class ChapgoApp extends StatelessWidget {
               );
           }
         },
+        ),
       ),
     );
   }

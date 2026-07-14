@@ -13,27 +13,19 @@ class SaccoDriverDetailScreen extends StatefulWidget {
   State<SaccoDriverDetailScreen> createState() => _SaccoDriverDetailScreenState();
 }
 
-class _SaccoDriverDetailScreenState extends State<SaccoDriverDetailScreen> with SingleTickerProviderStateMixin {
+class _SaccoDriverDetailScreenState extends State<SaccoDriverDetailScreen> {
   final _api = ApiService();
   bool _loading = true;
   Map<String, dynamic>? _data;
-  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
     final user = context.read<AuthProvider>().user;
     if (user != null) {
       _api.setToken(user.token);
     }
     _loadDetails();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadDetails() async {
@@ -282,21 +274,11 @@ class _SaccoDriverDetailScreenState extends State<SaccoDriverDetailScreen> with 
 
     final driver = _data!['driver'] ?? {};
     final account = _data!['saccoAccount'];
-    final cashflowSummary = _data!['cashflowSummary'] ?? {};
-    final cashflow = _data!['cashflow'] as List? ?? [];
     final loans = _data!['loans'] as List? ?? [];
 
     final score = (driver['score'] as num?)?.toDouble() ?? 0.0;
     final tier = driver['tier'] as String? ?? 'unranked';
     final hasSacco = account != null;
-
-    // Separate income and expense
-    final incomeList = cashflow.where((c) => c['type'] == 'income').toList();
-    final expenseList = cashflow.where((c) => c['type'] == 'expense').toList();
-
-    final totalIncome = double.tryParse(cashflowSummary['totalIncome']?.toString() ?? '0') ?? 0.0;
-    final totalExpense = double.tryParse(cashflowSummary['totalExpense']?.toString() ?? '0') ?? 0.0;
-    final netBalance = double.tryParse(cashflowSummary['netBalance']?.toString() ?? '0') ?? 0.0;
 
     return Scaffold(
       appBar: AppBar(
@@ -332,14 +314,14 @@ class _SaccoDriverDetailScreenState extends State<SaccoDriverDetailScreen> with 
                             children: [
                               Text(
                                 driver['full_name'] ?? '',
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.navy),
                               ),
                               const SizedBox(height: 4),
-                              Text('${driver['phone']} | ${driver['vehicle_plate'] ?? ""}', style: const TextStyle(color: AppTheme.gray)),
+                              Text('${driver['phone']} | ${driver['vehicle_plate'] ?? ""}', style: TextStyle(color: AppTheme.gray)),
                               const SizedBox(height: 4),
                               Text(
                                 'Score: ${score.toStringAsFixed(0)} (${tier.toUpperCase()})',
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.gold),
+                                style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.gold),
                               ),
                             ],
                           ),
@@ -394,7 +376,7 @@ class _SaccoDriverDetailScreenState extends State<SaccoDriverDetailScreen> with 
                                 lang.locale == 'en'
                                     ? 'This driver is not a member of your Sacco.'
                                     : 'Dereva huyu sio mwanachama wa Sacco yako.',
-                                style: const TextStyle(fontStyle: FontStyle.italic, color: AppTheme.gray),
+                                style: TextStyle(fontStyle: FontStyle.italic, color: AppTheme.gray),
                               ),
                               const SizedBox(height: 12),
                               SizedBox(
@@ -411,28 +393,14 @@ class _SaccoDriverDetailScreenState extends State<SaccoDriverDetailScreen> with 
                 ),
                 const SizedBox(height: 12),
 
-                // 3. Summary chips row
+                // Loans (Mikopo) section header
                 Row(
                   children: [
-                    _buildSummaryChip(
-                      icon: Icons.arrow_upward,
-                      label: lang.locale == 'en' ? 'Income' : 'Mapato',
-                      value: 'TSh ${totalIncome.toStringAsFixed(0)}',
-                      color: Colors.green,
-                    ),
+                    Icon(Icons.account_balance, size: 18, color: AppTheme.navy),
                     const SizedBox(width: 8),
-                    _buildSummaryChip(
-                      icon: Icons.arrow_downward,
-                      label: lang.locale == 'en' ? 'Expense' : 'Matumizi',
-                      value: 'TSh ${totalExpense.toStringAsFixed(0)}',
-                      color: Colors.red,
-                    ),
-                    const SizedBox(width: 8),
-                    _buildSummaryChip(
-                      icon: Icons.account_balance_wallet,
-                      label: lang.locale == 'en' ? 'Net' : 'Jumla',
-                      value: 'TSh ${netBalance.toStringAsFixed(0)}',
-                      color: netBalance >= 0 ? Colors.blue : Colors.red,
+                    Text(
+                      '${lang.locale == "en" ? "Loans" : "Mikopo"} (${loans.length})',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy),
                     ),
                   ],
                 ),
@@ -440,211 +408,11 @@ class _SaccoDriverDetailScreenState extends State<SaccoDriverDetailScreen> with 
             ),
           ),
 
-          // TabBar
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              labelColor: AppTheme.navy,
-              unselectedLabelColor: AppTheme.gray,
-              indicatorColor: AppTheme.gold,
-              indicatorWeight: 3,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-              tabs: [
-                Tab(
-                  icon: const Icon(Icons.arrow_upward, size: 18),
-                  text: '${lang.locale == "en" ? "Income" : "Mapato"} (${incomeList.length})',
-                ),
-                Tab(
-                  icon: const Icon(Icons.arrow_downward, size: 18),
-                  text: '${lang.locale == "en" ? "Expense" : "Matumizi"} (${expenseList.length})',
-                ),
-                Tab(
-                  icon: const Icon(Icons.account_balance, size: 18),
-                  text: '${lang.locale == "en" ? "Loans" : "Mikopo"} (${loans.length})',
-                ),
-              ],
-            ),
-          ),
-
-          // Tab content
+          // Loans + repayments (marejesho)
           Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // Tab 1: Income
-                _buildCashflowList(lang, incomeList, isIncome: true),
-
-                // Tab 2: Expense
-                _buildCashflowList(lang, expenseList, isIncome: false),
-
-                // Tab 3: Loans
-                _buildLoansTab(lang, loans),
-              ],
-            ),
+            child: _buildLoansTab(lang, loans),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSummaryChip({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: color.withOpacity(0.2)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 18),
-            const SizedBox(height: 4),
-            Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 2),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCashflowList(LanguageProvider lang, List<dynamic> items, {required bool isIncome}) {
-    if (items.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isIncome ? Icons.trending_up : Icons.trending_down,
-                size: 48,
-                color: AppTheme.grayLight,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                isIncome
-                    ? (lang.locale == 'en' ? 'No income records found.' : 'Hakuna rekodi za mapato.')
-                    : (lang.locale == 'en' ? 'No expense records found.' : 'Hakuna rekodi za matumizi.'),
-                style: const TextStyle(fontStyle: FontStyle.italic, color: AppTheme.gray),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    // Group by date
-    final Map<String, List<dynamic>> grouped = {};
-    for (final item in items) {
-      final dateStr = item['date']?.toString();
-      final dateKey = dateStr != null && dateStr.length >= 10 ? dateStr.substring(0, 10) : 'Unknown';
-      grouped.putIfAbsent(dateKey, () => []);
-      grouped[dateKey]!.add(item);
-    }
-
-    final sortedDates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
-
-    return RefreshIndicator(
-      onRefresh: _loadDetails,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(12),
-        itemCount: sortedDates.length,
-        itemBuilder: (context, i) {
-          final date = sortedDates[i];
-          final dayItems = grouped[date]!;
-          final dayTotal = dayItems.fold<double>(0.0, (sum, c) => sum + (double.tryParse(c['amount'].toString()) ?? 0.0));
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Date header
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.navy.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        date,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.navy),
-                      ),
-                    ),
-                    Text(
-                      '${isIncome ? "+" : "-"} TSh ${dayTotal.toStringAsFixed(0)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: isIncome ? Colors.green : Colors.red,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Items for this date
-              ...dayItems.map((c) {
-                final amt = double.tryParse(c['amount'].toString()) ?? 0.0;
-                final category = (c['category'] ?? '').toString().toUpperCase();
-                final description = c['description'] ?? '';
-                final time = c['date']?.toString();
-                final timeStr = time != null && time.length >= 16 ? time.substring(11, 16) : '';
-
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 6),
-                  elevation: 0.5,
-                  child: ListTile(
-                    dense: true,
-                    leading: CircleAvatar(
-                      radius: 18,
-                      backgroundColor: isIncome ? Colors.green.shade50 : Colors.red.shade50,
-                      child: Icon(
-                        isIncome ? Icons.arrow_upward : Icons.arrow_downward,
-                        size: 16,
-                        color: isIncome ? Colors.green : Colors.red,
-                      ),
-                    ),
-                    title: Text(
-                      category,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                    subtitle: Text(
-                      description.isEmpty ? timeStr : '$description • $timeStr',
-                      style: const TextStyle(fontSize: 11, color: AppTheme.gray),
-                    ),
-                    trailing: Text(
-                      '${isIncome ? "+" : "-"} TSh ${amt.toStringAsFixed(0)}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                        color: isIncome ? Colors.green : Colors.red,
-                      ),
-                    ),
-                  ),
-                );
-              }),
-              if (i < sortedDates.length - 1)
-                Divider(height: 16, color: Colors.grey.shade200),
-            ],
-          );
-        },
       ),
     );
   }
@@ -657,11 +425,11 @@ class _SaccoDriverDetailScreenState extends State<SaccoDriverDetailScreen> with 
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.account_balance, size: 48, color: AppTheme.grayLight),
+              Icon(Icons.account_balance, size: 48, color: AppTheme.grayLight),
               const SizedBox(height: 12),
               Text(
                 lang.translate('no_active_loans') ?? 'No loans recorded.',
-                style: const TextStyle(fontStyle: FontStyle.italic, color: AppTheme.gray),
+                style: TextStyle(fontStyle: FontStyle.italic, color: AppTheme.gray),
               ),
               const SizedBox(height: 16),
               OutlinedButton.icon(
@@ -670,7 +438,7 @@ class _SaccoDriverDetailScreenState extends State<SaccoDriverDetailScreen> with 
                 label: Text(lang.translate('invite_driver_loan') ?? 'Send Loan Invitation'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppTheme.gold,
-                  side: const BorderSide(color: AppTheme.gold),
+                  side: BorderSide(color: AppTheme.gold),
                 ),
               ),
             ],
@@ -696,7 +464,7 @@ class _SaccoDriverDetailScreenState extends State<SaccoDriverDetailScreen> with 
                 label: Text(lang.translate('invite_driver_loan') ?? 'Send Loan Invitation'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppTheme.gold,
-                  side: const BorderSide(color: AppTheme.gold),
+                  side: BorderSide(color: AppTheme.gold),
                 ),
               ),
             ),
@@ -724,7 +492,7 @@ class _SaccoDriverDetailScreenState extends State<SaccoDriverDetailScreen> with 
                   children: [
                     Text(
                       '${loan["loan_purpose"].toString().toUpperCase()} LOAN',
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy),
+                      style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

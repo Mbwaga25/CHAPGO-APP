@@ -226,7 +226,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
                         children: [
                           CircleAvatar(
                             radius: 54,
-                            backgroundColor: AppTheme.navy,
+                            backgroundColor: AppTheme.green,
                             backgroundImage: _pickedImageBytes != null
                                 ? MemoryImage(Uint8List.fromList(_pickedImageBytes!)) as ImageProvider
                                 : (fullImageUrl != null ? NetworkImage(fullImageUrl) as ImageProvider : null),
@@ -339,7 +339,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
                       child: ElevatedButton(
                         onPressed: _saving ? null : _saveProfile,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.navy,
+                          backgroundColor: AppTheme.green,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         child: _saving
@@ -355,7 +355,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
                 ),
               ),
             ),
-      bottomNavigationBar: const DriverSubPageNavBar(activeIndex: -1),
+      bottomNavigationBar: const DriverSubPageNavBar(activeIndex: 5),
     );
   }
 
@@ -369,7 +369,7 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
             children: [
               Text(
                 title.toUpperCase(),
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.gray),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.gray),
               ),
             ],
           ),
@@ -399,11 +399,11 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
           hintText: hint,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppTheme.grayLight),
+            borderSide: BorderSide(color: AppTheme.grayLight),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(color: AppTheme.navy, width: 2),
+            borderSide: BorderSide(color: AppTheme.navy, width: 2),
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),

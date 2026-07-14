@@ -260,7 +260,7 @@ class _DriverCashflowPageState extends State<DriverCashflowPage> with SingleTick
           ),
         ],
       ),
-      bottomNavigationBar: const DriverSubPageNavBar(activeIndex: 1),
+      bottomNavigationBar: const DriverSubPageNavBar(activeIndex: 2),
     );
   }
 
@@ -276,7 +276,7 @@ class _DriverCashflowPageState extends State<DriverCashflowPage> with SingleTick
       return Center(
         child: Text(
           lang.translate('no_activities'),
-          style: const TextStyle(color: AppTheme.gray, fontStyle: FontStyle.italic),
+          style: TextStyle(color: AppTheme.gray, fontStyle: FontStyle.italic),
         ),
       );
     }
@@ -308,7 +308,7 @@ class _DriverCashflowPageState extends State<DriverCashflowPage> with SingleTick
                   ),
                   subtitle: Text(
                     tx.description.isNotEmpty ? tx.description : '${tx.date.day}/${tx.date.month}/${tx.date.year}',
-                    style: const TextStyle(fontSize: 12, color: AppTheme.gray),
+                    style: TextStyle(fontSize: 12, color: AppTheme.gray),
                   ),
                   trailing: Text(
                     '${isIncome ? "+" : "-"} TSh ${tx.amount.toStringAsFixed(0)}',
@@ -328,7 +328,7 @@ class _DriverCashflowPageState extends State<DriverCashflowPage> with SingleTick
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             decoration: BoxDecoration(
               color: Colors.grey[50],
-              border: const Border(top: BorderSide(color: AppTheme.grayLight, width: 0.5)),
+              border: Border(top: BorderSide(color: AppTheme.grayLight, width: 0.5)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -341,7 +341,7 @@ class _DriverCashflowPageState extends State<DriverCashflowPage> with SingleTick
                 ),
                 Text(
                   '${lang.translate('page_label') ?? 'Page'} $_currentPage / $totalPages',
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy),
                 ),
                 IconButton(
                   icon: const Icon(Icons.arrow_forward_ios, size: 16),

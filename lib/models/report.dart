@@ -1,5 +1,5 @@
 class QuarterlyReport {
-  final int id;
+  final String id;
   final int quarterNumber;
   final int reportYear;
   final String periodStart;
@@ -23,7 +23,7 @@ class QuarterlyReport {
 
   factory QuarterlyReport.fromJson(Map<String, dynamic> json) {
     return QuarterlyReport(
-      id: json['id'] as int,
+      id: json['id']?.toString() ?? '',
       quarterNumber: json['quarter_number'] as int,
       reportYear: json['report_year'] as int,
       periodStart: json['period_start'] as String? ?? '',

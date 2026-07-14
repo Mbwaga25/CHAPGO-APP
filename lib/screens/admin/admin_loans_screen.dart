@@ -75,7 +75,7 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
     return RefreshIndicator(
       onRefresh: _loadLoans,
       child: _loans.isEmpty
-          ? const Center(
+          ? Center(
               child: Text(
                 'Hakuna mikopo iliyosajiliwa',
                 style: TextStyle(color: AppTheme.grayLight, fontStyle: FontStyle.italic),
@@ -104,7 +104,7 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(driver, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy)),
+                            Text(driver, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy)),
                             StatusBadge(
                               label: status.toUpperCase(),
                               variant: _getVariant(status),
@@ -112,7 +112,7 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
                           ],
                         ),
                         const SizedBox(height: 4),
-                        Text('Chombo: $plate  ·  SACCO: $sacco', style: const TextStyle(fontSize: 12, color: AppTheme.gray)),
+                        Text('Chombo: $plate  ·  SACCO: $sacco', style: TextStyle(fontSize: 12, color: AppTheme.gray)),
                         const Divider(height: 20),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -135,7 +135,7 @@ class _AdminLoansScreenState extends State<AdminLoansScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: AppTheme.gray, fontWeight: FontWeight.w600)),
+        Text(label, style: TextStyle(fontSize: 11, color: AppTheme.gray, fontWeight: FontWeight.w600)),
         const SizedBox(height: 4),
         Text(
           value,

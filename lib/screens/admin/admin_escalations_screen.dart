@@ -61,7 +61,7 @@ class _AdminEscalationsScreenState extends State<AdminEscalationsScreen> {
         return StatefulBuilder(
           builder: (dialogCtx, setDialogState) {
             return AlertDialog(
-              title: const Text('Resolve Escalation', style: TextStyle(color: AppTheme.navy, fontWeight: FontWeight.bold)),
+              title: Text('Resolve Escalation', style: TextStyle(color: AppTheme.navy, fontWeight: FontWeight.bold)),
               content: TextField(
                 controller: notesController,
                 maxLines: 3,
@@ -73,7 +73,7 @@ class _AdminEscalationsScreenState extends State<AdminEscalationsScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Ghairi', style: TextStyle(color: AppTheme.gray)),
+                  child: Text('Ghairi', style: TextStyle(color: AppTheme.gray)),
                 ),
                 ElevatedButton(
                   onPressed: submitting
@@ -131,7 +131,7 @@ class _AdminEscalationsScreenState extends State<AdminEscalationsScreen> {
     return RefreshIndicator(
       onRefresh: _loadEscalations,
       child: _escalations.isEmpty
-          ? const Center(
+          ? Center(
               child: Text(
                 'Hakuna escalations zilizopo kwa sasa',
                 style: TextStyle(color: AppTheme.grayLight, fontStyle: FontStyle.italic),
@@ -162,7 +162,7 @@ class _AdminEscalationsScreenState extends State<AdminEscalationsScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy)),
+                            Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppTheme.navy)),
                             StatusBadge(
                               label: severity.toUpperCase(),
                               variant: _getSeverityVariant(severity),
@@ -170,9 +170,9 @@ class _AdminEscalationsScreenState extends State<AdminEscalationsScreen> {
                           ],
                         ),
                         const SizedBox(height: 2),
-                        Text(phone, style: const TextStyle(fontSize: 12, color: AppTheme.gray)),
+                        Text(phone, style: TextStyle(fontSize: 12, color: AppTheme.gray)),
                         const SizedBox(height: 8),
-                        Text('Sababu: $reason', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.navy)),
+                        Text('Sababu: $reason', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.navy)),
                         const SizedBox(height: 4),
                         Container(
                           width: double.infinity,
@@ -181,11 +181,11 @@ class _AdminEscalationsScreenState extends State<AdminEscalationsScreen> {
                             color: Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: Text('Ujumbe wa mwisho:\n"$msg"', style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: AppTheme.gray)),
+                          child: Text('Ujumbe wa mwisho:\n"$msg"', style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: AppTheme.gray)),
                         ),
                         if (resolved) ...[
                           const SizedBox(height: 10),
-                          Text('Utatuzi: $notes', style: const TextStyle(fontSize: 12, color: AppTheme.green, fontWeight: FontWeight.bold)),
+                          Text('Utatuzi: $notes', style: TextStyle(fontSize: 12, color: AppTheme.green, fontWeight: FontWeight.bold)),
                         ],
                         const Divider(height: 24),
                         Row(

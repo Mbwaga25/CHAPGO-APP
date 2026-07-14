@@ -88,7 +88,7 @@ class _AdminMembersScreenState extends State<AdminMembersScreen> {
         final tier = (d['boda_tier'] ?? 'unranked').toString().toUpperCase();
 
         return AlertDialog(
-          title: Text(d['full_name'] ?? 'Driver Details', style: const TextStyle(color: AppTheme.navy, fontWeight: FontWeight.bold)),
+          title: Text(d['full_name'] ?? 'Driver Details', style: TextStyle(color: AppTheme.navy, fontWeight: FontWeight.bold)),
           content: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,9 +121,9 @@ class _AdminMembersScreenState extends State<AdminMembersScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 11, color: AppTheme.gray, fontWeight: FontWeight.w600)),
+          Text(label, style: TextStyle(fontSize: 11, color: AppTheme.gray, fontWeight: FontWeight.w600)),
           const SizedBox(height: 2),
-          Text(value, style: const TextStyle(fontSize: 14, color: AppTheme.navy, fontWeight: FontWeight.bold)),
+          Text(value, style: TextStyle(fontSize: 14, color: AppTheme.navy, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -162,7 +162,7 @@ class _AdminMembersScreenState extends State<AdminMembersScreen> {
           ),
           Expanded(
             child: _filteredDrivers.isEmpty
-                ? const Center(
+                ? Center(
                     child: Text(
                       'Hakuna madereva waliopatikana',
                       style: TextStyle(color: AppTheme.grayLight, fontStyle: FontStyle.italic),
@@ -184,7 +184,7 @@ class _AdminMembersScreenState extends State<AdminMembersScreen> {
                         child: ListTile(
                           title: Row(
                             children: [
-                              Text(name, style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy)),
+                              Text(name, style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy)),
                               const SizedBox(width: 8),
                               StatusBadge(
                                 label: active ? 'Active' : 'Pending',

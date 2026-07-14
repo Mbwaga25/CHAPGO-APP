@@ -2,7 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../models/user.dart';
+import '../../widgets/theme_toggle_button.dart';
+import 'admin_fuel_pricing_screen.dart';
+import 'admin_score_tiers_screen.dart';
+import 'admin_loan_products_screen.dart';
 import 'overview_screen.dart';
 import 'admin_members_screen.dart';
 import 'admin_saccos_screen.dart';
@@ -48,6 +53,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<ThemeProvider>(); // recolor on theme toggle
     return Scaffold(
       backgroundColor: AppTheme.bg,
       appBar: AppBar(
@@ -68,23 +74,24 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             onPressed: () => Scaffold.of(ctx).openDrawer(),
           ),
         ),
+        actions: const [ThemeToggleButton()],
       ),
       drawer: _buildDrawer(context),
       body: IndexedStack(
         index: _selectedIndex,
         children: [
-          const OverviewScreen(),
-          const AdminMembersScreen(),
-          const AdminSaccosScreen(),
-          const AdminStationsScreen(),
-          const AdminLoansScreen(),
-          const SafetyScreen(),
-          const AdminEscalationsScreen(),
-          const CampaignsScreen(),
-          const OwnershipScreen(),
-          const TitheScreen(),
-          const ReportsScreen(),
-          const AuditScreen(),
+          OverviewScreen(),
+          AdminMembersScreen(),
+          AdminSaccosScreen(),
+          AdminStationsScreen(),
+          AdminLoansScreen(),
+          SafetyScreen(),
+          AdminEscalationsScreen(),
+          CampaignsScreen(),
+          OwnershipScreen(),
+          TitheScreen(),
+          ReportsScreen(),
+          AuditScreen(),
         ],
       ),
       bottomNavigationBar: _selectedIndex < 5 ? _buildBottomNav() : null,
@@ -95,7 +102,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.surface,
-        border: const Border(top: BorderSide(color: AppTheme.border, width: 1)),
+        border: Border(top: BorderSide(color: AppTheme.border, width: 1)),
         boxShadow: [
           BoxShadow(color: AppTheme.navy.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, -4)),
         ],
@@ -126,21 +133,21 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? AppTheme.navy.withValues(alpha: 0.08) : Colors.transparent,
+          color: isActive ? AppTheme.gold.withValues(alpha: 0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(isActive ? activeIcon : icon,
-                color: isActive ? AppTheme.navy : AppTheme.grayLight, size: 22),
+                color: isActive ? AppTheme.gold : AppTheme.gray, size: 22),
             const SizedBox(height: 4),
             Text(
               label,
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                color: isActive ? AppTheme.navy : AppTheme.grayLight,
+                color: isActive ? AppTheme.gold : AppTheme.gray,
               ),
             ),
           ],
@@ -172,7 +179,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                       width: 52,
                       height: 52,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
+                        gradient: LinearGradient(
                           colors: [AppTheme.gold, AppTheme.goldDark],
                         ),
                         borderRadius: BorderRadius.circular(14),
@@ -180,7 +187,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                       child: Center(
                         child: Text(
                           user?.initials ?? 'A',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: AppTheme.white,
                             fontSize: 20,
@@ -195,7 +202,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                         children: [
                           Text(
                             user?.fullName ?? 'Admin',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: AppTheme.white,
                               fontWeight: FontWeight.w700,
                               fontSize: 15,
@@ -211,7 +218,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                             ),
                             child: Text(
                               (user?.role ?? 'admin').toUpperCase(),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppTheme.goldLight,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w700,
@@ -268,6 +275,40 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                               onTap: () => _onSelect(e.key + 10),
                             ),
                           ),
+                          const _NavSection(label: 'Settings'),
+                          _NavItem(
+                            icon: Icons.local_gas_station,
+                            label: 'Fuel Pricing',
+                            isSelected: false,
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.push(context, MaterialPageRoute(
+                                builder: (_) => const AdminFuelPricingScreen(),
+                              ));
+                            },
+                          ),
+                          _NavItem(
+                            icon: Icons.layers_outlined,
+                            label: 'Score Tiers',
+                            isSelected: false,
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.push(context, MaterialPageRoute(
+                                builder: (_) => const AdminScoreTiersScreen(),
+                              ));
+                            },
+                          ),
+                          _NavItem(
+                            icon: Icons.shopping_bag_outlined,
+                            label: 'Loan Products',
+                            isSelected: false,
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.push(context, MaterialPageRoute(
+                                builder: (_) => const AdminLoanProductsScreen(),
+                              ));
+                            },
+                          ),
                         ],
                 ),
               ),
@@ -299,11 +340,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: AppTheme.red.withValues(alpha: 0.3)),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.logout, color: AppTheme.red, size: 18),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Text('Sign Out', style: TextStyle(color: AppTheme.red, fontWeight: FontWeight.w600)),
                           ],
                         ),
@@ -420,12 +461,12 @@ class PlaceholderScreen extends StatelessWidget {
                 color: AppTheme.surfaceVariant,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: const Icon(Icons.construction, size: 48, color: AppTheme.grayLight),
+              child: Icon(Icons.construction, size: 48, color: AppTheme.grayLight),
             ),
             const SizedBox(height: 20),
             Text(title, style: AppTheme.headingMedium),
             const SizedBox(height: 8),
-            Text(message, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.gray)),
+            Text(message, textAlign: TextAlign.center, style: TextStyle(color: AppTheme.gray)),
           ],
         ),
       ),

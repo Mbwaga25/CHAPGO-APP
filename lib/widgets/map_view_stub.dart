@@ -181,14 +181,14 @@ class _ActiveMapViewState extends State<ActiveMapView> {
                   color: isSelected ? Colors.amber[50] : Colors.white,
                   shape: isSelected
                       ? RoundedRectangleBorder(
-                          side: const BorderSide(color: AppTheme.gold, width: 1.5),
+                          side: BorderSide(color: AppTheme.gold, width: 1.5),
                           borderRadius: BorderRadius.circular(8),
                         )
                       : null,
                   child: ListTile(
-                    leading: const CircleAvatar(
-                      backgroundColor: AppTheme.navy,
-                      child: Icon(Icons.local_gas_station, color: Colors.white),
+                    leading: CircleAvatar(
+                      backgroundColor: AppTheme.green,
+                      child: const Icon(Icons.local_gas_station, color: Colors.white),
                     ),
                     title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
                     subtitle: Text('${s['district'] ?? ''} - ${lang.translate('station_distance')}: $distStr'),

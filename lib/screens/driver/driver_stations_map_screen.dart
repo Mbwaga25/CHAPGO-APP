@@ -78,7 +78,7 @@ class _DriverStationsMapScreenState extends State<DriverStationsMapScreen> with 
             const SizedBox(height: 12),
             Text('${lang.translate('station_selected') ?? 'Refuel Choice Confirmed'}:'),
             const SizedBox(height: 4),
-            Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.navy)),
+            Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.navy)),
           ],
         ),
         actions: [
@@ -134,7 +134,7 @@ class _DriverStationsMapScreenState extends State<DriverStationsMapScreen> with 
                     children: [
                       Text(
                         '${lang.translate('district') ?? 'District'}:',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy),
+                        style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy),
                       ),
                       DropdownButton<String>(
                         value: _selectedDistrict,
@@ -225,7 +225,7 @@ class _DriverStationsMapScreenState extends State<DriverStationsMapScreen> with 
                                     children: [
                                       Text(
                                         name,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy, fontSize: 15),
+                                        style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy, fontSize: 15),
                                       ),
                                       if (isSelected)
                                         const Chip(
@@ -237,10 +237,10 @@ class _DriverStationsMapScreenState extends State<DriverStationsMapScreen> with 
                                     ],
                                   ),
                                   const SizedBox(height: 8),
-                                  Text('${s['district'] ?? ''} - ${s['ward'] ?? ''}', style: const TextStyle(color: AppTheme.gray, fontSize: 12)),
+                                  Text('${s['district'] ?? ''} - ${s['ward'] ?? ''}', style: TextStyle(color: AppTheme.gray, fontSize: 12)),
                                   if (addr.isNotEmpty) ...[
                                     const SizedBox(height: 4),
-                                    Text(addr, style: const TextStyle(color: AppTheme.navy, fontSize: 13)),
+                                    Text(addr, style: TextStyle(color: AppTheme.navy, fontSize: 13)),
                                   ],
                                   const Divider(height: 24),
                                   Row(
@@ -268,23 +268,7 @@ class _DriverStationsMapScreenState extends State<DriverStationsMapScreen> with 
                 ),
               ],
             ),
-      bottomNavigationBar: DriverSubPageNavBar(
-        type: 'stations',
-        activeIndex: _tabController.index + 1,
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/driver/home',
-              (route) => false,
-              arguments: {'tab': 0},
-            );
-          } else {
-            _tabController.animateTo(index - 1);
-            setState(() {});
-          }
-        },
-      ),
+      bottomNavigationBar: const DriverSubPageNavBar(),
     );
   }
 }

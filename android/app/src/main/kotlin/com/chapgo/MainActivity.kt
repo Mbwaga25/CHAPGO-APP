@@ -1,4 +1,4 @@
-package com.example.chapgo_app
+package com.chapgo
 
 import io.flutter.embedding.android.FlutterActivity
 

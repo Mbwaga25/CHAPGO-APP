@@ -126,7 +126,7 @@ class _DriverLoansListScreenState extends State<DriverLoansListScreen> with Sing
                     children: [
                       Text(
                         '${lang.translate('filter_date')}:',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy),
+                        style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy),
                       ),
                       DropdownButton<String>(
                         value: _tabController.index == 0
@@ -172,7 +172,7 @@ class _DriverLoansListScreenState extends State<DriverLoansListScreen> with Sing
                                 ? Center(
                                     child: Text(
                                       lang.translate('no_active_loans'),
-                                      style: const TextStyle(color: AppTheme.gray, fontStyle: FontStyle.italic),
+                                      style: TextStyle(color: AppTheme.gray, fontStyle: FontStyle.italic),
                                     ),
                                   )
                                 : ListView.builder(
@@ -208,7 +208,7 @@ class _DriverLoansListScreenState extends State<DriverLoansListScreen> with Sing
                                                 children: [
                                                   Text(
                                                     lang.translate(purpose).toUpperCase(),
-                                                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy, fontSize: 15),
+                                                    style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy, fontSize: 15),
                                                   ),
                                                   Container(
                                                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -241,7 +241,7 @@ class _DriverLoansListScreenState extends State<DriverLoansListScreen> with Sing
                               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                               decoration: BoxDecoration(
                                 color: Colors.grey[50],
-                                border: const Border(top: BorderSide(color: AppTheme.grayLight, width: 0.5)),
+                                border: Border(top: BorderSide(color: AppTheme.grayLight, width: 0.5)),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -254,7 +254,7 @@ class _DriverLoansListScreenState extends State<DriverLoansListScreen> with Sing
                                   ),
                                   Text(
                                     '${lang.translate('page_label')} $_currentPage / $totalPages',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy),
+                                    style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy),
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.arrow_forward_ios, size: 16),
@@ -272,7 +272,7 @@ class _DriverLoansListScreenState extends State<DriverLoansListScreen> with Sing
                 ),
               ],
             ),
-      bottomNavigationBar: const DriverSubPageNavBar(type: 'loans', activeIndex: 2),
+      bottomNavigationBar: const DriverSubPageNavBar(),
     );
   }
 
@@ -282,8 +282,8 @@ class _DriverLoansListScreenState extends State<DriverLoansListScreen> with Sing
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppTheme.gray, fontSize: 13)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600, color: AppTheme.navy, fontSize: 13)),
+          Text(label, style: TextStyle(color: AppTheme.gray, fontSize: 13)),
+          Text(value, style: TextStyle(fontWeight: FontWeight.w600, color: AppTheme.navy, fontSize: 13)),
         ],
       ),
     );

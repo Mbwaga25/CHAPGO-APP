@@ -57,13 +57,13 @@ class _TitheScreenState extends State<TitheScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 16),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Corporate Tithe Ledger', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.navy)),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text('Covenant Principle 6 — 10% of profit to Kingdom work', style: TextStyle(fontSize: 14, color: AppTheme.gray)),
               ],
             ),
@@ -80,7 +80,7 @@ class _TitheScreenState extends State<TitheScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Tithe Transactions', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.navy)),
+              Text('Tithe Transactions', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.navy)),
               TextButton.icon(
                 onPressed: _loadData,
                 icon: const Icon(Icons.refresh, size: 16),
@@ -89,7 +89,7 @@ class _TitheScreenState extends State<TitheScreen> {
             ],
           ),
           if (_transactions.isEmpty)
-            const Card(child: Padding(padding: EdgeInsets.all(24), child: Center(child: Text('No transactions yet', style: TextStyle(color: AppTheme.grayLight, fontStyle: FontStyle.italic)))))
+            Card(child: Padding(padding: const EdgeInsets.all(24), child: Center(child: Text('No transactions yet', style: TextStyle(color: AppTheme.grayLight, fontStyle: FontStyle.italic)))))
           else
             ..._transactions.map((x) => Card(
               margin: const EdgeInsets.only(bottom: 8),
@@ -106,7 +106,7 @@ class _TitheScreenState extends State<TitheScreen> {
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text('${x.periodStart} — ${x.periodEnd}', style: const TextStyle(fontSize: 12, color: AppTheme.gray)),
+                    Text('${x.periodStart} — ${x.periodEnd}', style: TextStyle(fontSize: 12, color: AppTheme.gray)),
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -115,7 +115,7 @@ class _TitheScreenState extends State<TitheScreen> {
                         Text('Tithe: ${_tsh(x.titheAmountTsh)}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                       ],
                     ),
-                    Text('Destination: ${x.destination}', style: const TextStyle(fontSize: 12, color: AppTheme.gray)),
+                    Text('Destination: ${x.destination}', style: TextStyle(fontSize: 12, color: AppTheme.gray)),
                   ],
                 ),
               ),

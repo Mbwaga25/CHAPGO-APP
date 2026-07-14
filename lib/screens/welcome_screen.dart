@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../config/theme.dart';
+import '../providers/auth_provider.dart';
+import '../models/user.dart';
+import '../widgets/chapgo_logo.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -49,8 +53,40 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     super.dispose();
   }
 
+  void _routeToDashboard(BuildContext context, UserRole? role) {
+    String route;
+    switch (role) {
+      case UserRole.stationOperator:
+        route = '/station/home';
+        break;
+      case UserRole.saccoAdmin:
+        route = '/sacco/home';
+        break;
+      case UserRole.admin:
+        route = '/admin/home';
+        break;
+      case UserRole.driver:
+        route = '/driver/home';
+        break;
+      default:
+        route = '/';
+        return;
+    }
+    Navigator.pushNamedAndRemoveUntil(context, route, (_) => false);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    if (auth.status == AuthStatus.authenticated) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _routeToDashboard(context, auth.user?.userRole);
+      });
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator(color: AppTheme.gold)),
+      );
+    }
+
     return Scaffold(
       body: Stack(
         children: [
@@ -109,56 +145,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                     opacity: _logoFade,
                     child: ScaleTransition(
                       scale: _logoScale,
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 96,
-                            height: 96,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [AppTheme.gold, AppTheme.goldDark],
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppTheme.gold.withValues(alpha: 0.4),
-                                  blurRadius: 24,
-                                  spreadRadius: 4,
-                                ),
-                              ],
-                            ),
-                            child: const Center(
-                              child: Icon(
-                                Icons.motorcycle,
-                                size: 48,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          const Text(
-                            'Chapgo',
-                            style: TextStyle(
-                              fontSize: 40,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                              letterSpacing: -1,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Every rider deserves a verifiable\neconomic identity',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.white.withValues(alpha: 0.6),
-                              height: 1.5,
-                            ),
-                          ),
-                        ],
-                      ),
+                      child: const ChapgoLogo(),
                     ),
                   ),
 
@@ -231,7 +218,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
                   // Footer
                   Text(
-                    'Zamunda Holdings Limited',
+                    'Chapgo Company Limited',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.white.withValues(alpha: 0.3),

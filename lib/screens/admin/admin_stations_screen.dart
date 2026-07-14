@@ -61,7 +61,7 @@ class _AdminStationsScreenState extends State<AdminStationsScreen> {
     return RefreshIndicator(
       onRefresh: _loadStations,
       child: _stations.isEmpty
-          ? const Center(
+          ? Center(
               child: Text(
                 'Hakuna vituo vya mafuta vilivyosajiliwa',
                 style: TextStyle(color: AppTheme.grayLight, fontStyle: FontStyle.italic),
@@ -102,7 +102,7 @@ class _AdminStationsScreenState extends State<AdminStationsScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.navy)),
+                              Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.navy)),
                               StatusBadge(
                                 label: active ? 'Active' : 'Inactive',
                                 variant: active ? BadgeVariant.active : BadgeVariant.pending,
@@ -112,9 +112,9 @@ class _AdminStationsScreenState extends State<AdminStationsScreen> {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              const Icon(Icons.location_on, size: 14, color: AppTheme.gray),
+                              Icon(Icons.location_on, size: 14, color: AppTheme.gray),
                               const SizedBox(width: 4),
-                              Text('$district, $ward', style: const TextStyle(fontSize: 12, color: AppTheme.gray)),
+                              Text('$district, $ward', style: TextStyle(fontSize: 12, color: AppTheme.gray)),
                             ],
                           ),
                           const Divider(height: 20),
@@ -140,9 +140,9 @@ class _AdminStationsScreenState extends State<AdminStationsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: AppTheme.gray, fontWeight: FontWeight.w600)),
+        Text(label, style: TextStyle(fontSize: 11, color: AppTheme.gray, fontWeight: FontWeight.w600)),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 14, color: AppTheme.navy, fontWeight: FontWeight.bold)),
+        Text(value, style: TextStyle(fontSize: 14, color: AppTheme.navy, fontWeight: FontWeight.bold)),
       ],
     );
   }

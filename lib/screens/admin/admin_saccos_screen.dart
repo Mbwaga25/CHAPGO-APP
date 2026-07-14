@@ -61,7 +61,7 @@ class _AdminSaccosScreenState extends State<AdminSaccosScreen> {
     return RefreshIndicator(
       onRefresh: _loadSaccos,
       child: _saccos.isEmpty
-          ? const Center(
+          ? Center(
               child: Text(
                 'Hakuna SACCOs zilizosajiliwa',
                 style: TextStyle(color: AppTheme.grayLight, fontStyle: FontStyle.italic),
@@ -103,7 +103,7 @@ class _AdminSaccosScreenState extends State<AdminSaccosScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.navy)),
+                              Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.navy)),
                               StatusBadge(
                                 label: active ? 'Active' : 'Inactive',
                                 variant: active ? BadgeVariant.active : BadgeVariant.pending,
@@ -111,7 +111,7 @@ class _AdminSaccosScreenState extends State<AdminSaccosScreen> {
                             ],
                           ),
                           const SizedBox(height: 4),
-                          Text('Reg No: $regNo', style: const TextStyle(fontSize: 12, color: AppTheme.gray)),
+                          Text('Reg No: $regNo', style: TextStyle(fontSize: 12, color: AppTheme.gray)),
                           const Divider(height: 20),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -124,17 +124,17 @@ class _AdminSaccosScreenState extends State<AdminSaccosScreen> {
                           const Divider(height: 20),
                           Row(
                             children: [
-                              const Icon(Icons.person, size: 16, color: AppTheme.gray),
+                              Icon(Icons.person, size: 16, color: AppTheme.gray),
                               const SizedBox(width: 6),
-                              Text('Chairperson: $chairperson', style: const TextStyle(fontSize: 13, color: AppTheme.navy)),
+                              Text('Chairperson: $chairperson', style: TextStyle(fontSize: 13, color: AppTheme.navy)),
                             ],
                           ),
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              const Icon(Icons.phone, size: 16, color: AppTheme.gray),
+                              Icon(Icons.phone, size: 16, color: AppTheme.gray),
                               const SizedBox(width: 6),
-                              Text('Simu: $phone', style: const TextStyle(fontSize: 13, color: AppTheme.navy)),
+                              Text('Simu: $phone', style: TextStyle(fontSize: 13, color: AppTheme.navy)),
                             ],
                           ),
                         ],
@@ -151,9 +151,9 @@ class _AdminSaccosScreenState extends State<AdminSaccosScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 11, color: AppTheme.gray, fontWeight: FontWeight.w600)),
+        Text(label, style: TextStyle(fontSize: 11, color: AppTheme.gray, fontWeight: FontWeight.w600)),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 14, color: AppTheme.navy, fontWeight: FontWeight.bold)),
+        Text(value, style: TextStyle(fontSize: 14, color: AppTheme.navy, fontWeight: FontWeight.bold)),
       ],
     );
   }

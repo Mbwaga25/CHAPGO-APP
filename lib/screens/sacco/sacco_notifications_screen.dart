@@ -103,11 +103,11 @@ class _SaccoNotificationsScreenState extends State<SaccoNotificationsScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.notifications_none, size: 64, color: AppTheme.grayLight),
+                      Icon(Icons.notifications_none, size: 64, color: AppTheme.grayLight),
                       const SizedBox(height: 16),
                       Text(
                         noNotifsText,
-                        style: const TextStyle(fontSize: 16, color: AppTheme.gray, fontStyle: FontStyle.italic),
+                        style: TextStyle(fontSize: 16, color: AppTheme.gray, fontStyle: FontStyle.italic),
                       ),
                     ],
                   ),
@@ -157,9 +157,9 @@ class _SaccoNotificationsScreenState extends State<SaccoNotificationsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const SizedBox(height: 4),
-                              Text(message, style: const TextStyle(color: AppTheme.navy, fontSize: 13)),
+                              Text(message, style: TextStyle(color: AppTheme.navy, fontSize: 13)),
                               const SizedBox(height: 6),
-                              Text(dateStr, style: const TextStyle(color: AppTheme.gray, fontSize: 11)),
+                              Text(dateStr, style: TextStyle(color: AppTheme.gray, fontSize: 11)),
                             ],
                           ),
                         ),

@@ -96,7 +96,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.campaign, color: AppTheme.gold, size: 36),
+                        Icon(Icons.campaign, color: AppTheme.gold, size: 36),
                         const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,7 +108,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                                     color: AppTheme.navy,
                                   ),
                             ),
-                            const Text(
+                            Text(
                               'Broadcast push notifications to all users on the platform.',
                               style: TextStyle(color: AppTheme.gray, fontSize: 13),
                             ),
@@ -119,16 +119,16 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                     const Divider(height: 32),
                     
                     // Target Dropdown
-                    const Text(
+                    Text(
                       'Target Group',
                       style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy),
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
                       value: _selectedTarget,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         prefixIcon: Icon(Icons.group, color: AppTheme.navy),
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
                       ),
                       items: const [
                         DropdownMenuItem(value: 'drivers', child: Text('All Drivers')),
@@ -154,10 +154,10 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.language, color: Colors.blue, size: 18),
-                              SizedBox(width: 8),
+                              const Icon(Icons.language, color: Colors.blue, size: 18),
+                              const SizedBox(width: 8),
                               Text('English Content', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy)),
                             ],
                           ),
@@ -196,10 +196,10 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.language, color: Colors.green, size: 18),
-                              SizedBox(width: 8),
+                              const Icon(Icons.language, color: Colors.green, size: 18),
+                              const SizedBox(width: 8),
                               Text('Swahili Content (Kiswahili)', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.navy)),
                             ],
                           ),
@@ -233,7 +233,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                       height: 50,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.navy,
+                          backgroundColor: AppTheme.green,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),

@@ -61,7 +61,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: AppTheme.red),
+            Icon(Icons.error_outline, size: 48, color: AppTheme.red),
             const SizedBox(height: 16),
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 16),
@@ -82,7 +82,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Overview',
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.navy),
                 ),
@@ -168,15 +168,15 @@ class _OverviewScreenState extends State<OverviewScreen> {
           ),
           if (!m.isSacco) ...[
             const SizedBox(height: 24),
-            const Text(
+            Text(
               'Critical Alerts',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.navy),
             ),
             const SizedBox(height: 8),
             if (m.openEscalations == 0 && m.activeWatchlist == 0)
-              const Card(
+              Card(
                 child: Padding(
-                  padding: EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(24),
                   child: Center(
                     child: Text(
                       'No critical alerts. System is healthy.',
@@ -194,11 +194,11 @@ class _OverviewScreenState extends State<OverviewScreen> {
                   decoration: BoxDecoration(
                     color: const Color(0xFFF5E8E8),
                     borderRadius: BorderRadius.circular(6),
-                    border: const Border(left: BorderSide(color: AppTheme.red, width: 4)),
+                    border: Border(left: BorderSide(color: AppTheme.red, width: 4)),
                   ),
                   child: Text(
                     '${m.openEscalations} members waiting for human support',
-                    style: const TextStyle(color: AppTheme.red),
+                    style: TextStyle(color: AppTheme.red),
                   ),
                 ),
               if (m.activeWatchlist > 0)
@@ -208,11 +208,11 @@ class _OverviewScreenState extends State<OverviewScreen> {
                   decoration: BoxDecoration(
                     color: const Color(0xFFF5E8E8),
                     borderRadius: BorderRadius.circular(6),
-                    border: const Border(left: BorderSide(color: AppTheme.red, width: 4)),
+                    border: Border(left: BorderSide(color: AppTheme.red, width: 4)),
                   ),
                   child: Text(
                     '${m.activeWatchlist} vehicles on active theft watchlist',
-                    style: const TextStyle(color: AppTheme.red),
+                    style: TextStyle(color: AppTheme.red),
                   ),
                 ),
             ],

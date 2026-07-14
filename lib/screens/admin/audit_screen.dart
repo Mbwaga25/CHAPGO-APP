@@ -50,13 +50,13 @@ class _AuditScreenState extends State<AuditScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Padding(
-            padding: EdgeInsets.only(bottom: 16),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Audit Log', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.navy)),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text('Every sensitive action is recorded here. Review regularly.', style: TextStyle(fontSize: 14, color: AppTheme.gray)),
               ],
             ),
@@ -64,7 +64,7 @@ class _AuditScreenState extends State<AuditScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Recent Activity', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.navy)),
+              Text('Recent Activity', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.navy)),
               TextButton.icon(
                 onPressed: _loadData,
                 icon: const Icon(Icons.refresh, size: 16),
@@ -73,7 +73,7 @@ class _AuditScreenState extends State<AuditScreen> {
             ],
           ),
           if (_entries.isEmpty)
-            const Card(child: Padding(padding: EdgeInsets.all(24), child: Center(child: Text('No audit entries', style: TextStyle(color: AppTheme.grayLight, fontStyle: FontStyle.italic)))))
+            Card(child: Padding(padding: const EdgeInsets.all(24), child: Center(child: Text('No audit entries', style: TextStyle(color: AppTheme.grayLight, fontStyle: FontStyle.italic)))))
           else
             ..._entries.map((e) => Card(
               margin: const EdgeInsets.only(bottom: 8),
@@ -91,17 +91,17 @@ class _AuditScreenState extends State<AuditScreen> {
                               Text(e.action, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                               const SizedBox(width: 8),
                               if (e.actorPhone != null)
-                                Text(e.actorPhone!, style: const TextStyle(fontSize: 11, color: AppTheme.gray)),
+                                Text(e.actorPhone!, style: TextStyle(fontSize: 11, color: AppTheme.gray)),
                             ],
                           ),
                           const SizedBox(height: 4),
                           Text(
                             '${e.actorType} · ${e.resourceType ?? '—'} · ${e.ipAddress ?? '—'}',
-                            style: const TextStyle(fontSize: 11, color: AppTheme.gray),
+                            style: TextStyle(fontSize: 11, color: AppTheme.gray),
                           ),
                           Text(
                             _formatDate(e.occurredAt),
-                            style: const TextStyle(fontSize: 11, color: AppTheme.grayLight),
+                            style: TextStyle(fontSize: 11, color: AppTheme.grayLight),
                           ),
                         ],
                       ),

@@ -46,13 +46,13 @@ class _OwnershipScreenState extends State<OwnershipScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const Padding(
-          padding: EdgeInsets.only(bottom: 16),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Member Ownership Ledger', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.navy)),
-              SizedBox(height: 4),
+              const SizedBox(height: 4),
               Text('Covenant Principle 1 — Every member is a real owner', style: TextStyle(fontSize: 14, color: AppTheme.gray)),
             ],
           ),
@@ -70,9 +70,9 @@ class _OwnershipScreenState extends State<OwnershipScreen> {
           decoration: BoxDecoration(
             color: AppTheme.soft,
             borderRadius: BorderRadius.circular(6),
-            border: const Border(left: BorderSide(color: AppTheme.gold, width: 4)),
+            border: Border(left: BorderSide(color: AppTheme.gold, width: 4)),
           ),
-          child: const Text(
+          child: Text(
             'Covenant Note: Member share units are tracked immutably. They can be granted by Super Admin with reason logged, but never revoked except under Covenant procedure.',
             style: TextStyle(fontSize: 13, color: AppTheme.navy),
           ),

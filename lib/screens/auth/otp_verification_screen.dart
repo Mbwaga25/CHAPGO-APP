@@ -85,14 +85,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Weka OTP',
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: AppTheme.navy),
             ),
             const SizedBox(height: 8),
             Text(
               'OTP ilitumwa kwa $phone',
-              style: const TextStyle(fontSize: 14, color: AppTheme.gray),
+              style: TextStyle(fontSize: 14, color: AppTheme.gray),
             ),
             const SizedBox(height: 32),
             TextField(
@@ -114,7 +114,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   child: ElevatedButton(
                     onPressed: auth.status == AuthStatus.loading ? null : _verifyOtp,
                     child: auth.status == AuthStatus.loading
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.white))
+                        ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.white))
                         : const Text('Thibitisha'),
                   ),
                 );

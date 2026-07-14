@@ -18,7 +18,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _plateController = TextEditingController();
   final _passwordController = TextEditingController();
   final _otpController = TextEditingController();
-  String _vehicleType = 'bodaboda';
+  String _vehicleType = 'bodaboda-petrol';
+  String _selectedRole = 'driver';
   bool _consentGiven = false;
   bool _otpSent = false;
   bool _submitting = false;
@@ -87,6 +88,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _submit() async {
     final lang = context.read<LanguageProvider>();
+    if (_selectedRole != 'driver') {
+      _showNotification(lang.locale == 'en' ? 'Registration for this role is not available yet' : 'Usajili kwa nafasi hii haupatikani kwa sasa', type: 'warning');
+      return;
+    }
     final phone = _normalizedPhone;
     final name = _nameController.text.trim();
     final nida = _nidaController.text.trim();
@@ -189,9 +194,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 12),
-                Text(lang.translate('register_heading'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.navy)),
+                Text(lang.translate('register_heading'), style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.navy)),
                 const SizedBox(height: 4),
-                Text(lang.translate('register_subheading'), style: const TextStyle(fontSize: 14, color: AppTheme.gray)),
+                Text(lang.translate('register_subheading'), style: TextStyle(fontSize: 14, color: AppTheme.gray)),
+                const SizedBox(height: 24),
+
+                // Role Selector
+                Text(lang.locale == 'en' ? 'Register As' : 'Sajili Kama',
+                    style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _roleBtn('driver', '🏍️', lang.locale == 'en' ? 'Driver' : 'Dereva'),
+                    const SizedBox(width: 8),
+                    _roleBtn('station', '⛽', lang.locale == 'en' ? 'Station' : 'Kituo'),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _roleBtn('sacco', '🏛️', 'SACCO'),
+                    const SizedBox(width: 8),
+                    _roleBtn('admin', '🔧', lang.locale == 'en' ? 'Admin' : 'Msimamizi'),
+                  ],
+                ),
                 const SizedBox(height: 24),
 
                 // Jina kamili field (First Step)
@@ -250,7 +276,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: ElevatedButton(
                       onPressed: _submitting ? null : _sendOtp,
                       child: _submitting
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.white))
+                          ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.white))
                           : Text(lang.translate('send_otp_btn')),
                     ),
                   ),
@@ -317,19 +343,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Vehicle Type dropdown field (Step 2)
-                  DropdownButtonFormField<String>(
-                    value: _vehicleType,
-                    decoration: InputDecoration(
-                      labelText: '${lang.translate('vehicle_type_field')} (${lang.translate('optional_label')})',
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'bodaboda', child: Text('Bodaboda')),
-                      DropdownMenuItem(value: 'bajaji', child: Text('Bajaji')),
-                      DropdownMenuItem(value: 'small_truck', child: Text('Small Truck')),
-                    ],
-                    onChanged: (v) => setState(() => _vehicleType = v ?? 'bodaboda'),
-                  ),
+                  // Vehicle Type selector (Step 2)
+                  if (_selectedRole == 'driver') ...[
+                    Text('${lang.translate('vehicle_type_field')} (${lang.translate('optional_label')})',
+                        style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      _vehicleBtn('bodaboda-petrol', '🏍️', 'Bodaboda'),
+                      const SizedBox(width: 8),
+                      _vehicleBtn('bajaji-petrol', '🛺', lang.locale == 'en' ? 'Bajaji' : 'Bajaji'),
+                    ]),
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      _vehicleBtn('bajaji-cng', '🛺', 'CNG'),
+                      const SizedBox(width: 8),
+                      _vehicleBtn('bajaji-electric', '⚡', lang.locale == 'en' ? 'Electric' : 'Umeme'),
+                    ]),
+                    const SizedBox(height: 20),
+                  ],
                   const SizedBox(height: 20),
 
                   // Consent Checkbox (Step 2)
@@ -338,7 +369,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     onChanged: (v) => setState(() => _consentGiven = v ?? false),
                     title: Text(
                       lang.translate('consent_checkbox'),
-                      style: const TextStyle(fontSize: 13, color: AppTheme.navy),
+                      style: TextStyle(fontSize: 13, color: AppTheme.navy),
                     ),
                     controlAffinity: ListTileControlAffinity.leading,
                     contentPadding: EdgeInsets.zero,
@@ -352,13 +383,74 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: ElevatedButton(
                       onPressed: _submitting ? null : _submit,
                       child: _submitting
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.white))
+                          ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.white))
                           : Text(lang.translate('register_btn')),
                     ),
                   ),
                 ],
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _roleBtn(String role, String icon, String label) {
+    final active = _selectedRole == role;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() {
+          _selectedRole = role;
+        }),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: active ? AppTheme.navy.withOpacity(0.08) : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: active ? AppTheme.navy : Colors.grey.shade300, width: active ? 1.5 : 1),
+          ),
+          child: Column(
+            children: [
+              Text(icon, style: const TextStyle(fontSize: 20)),
+              const SizedBox(height: 4),
+              Text(label,
+                  style: TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w600, color: active ? AppTheme.navy : Colors.grey.shade600)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _vehicleBtn(String vtype, String icon, String label) {
+    final active = _vehicleType == vtype;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _vehicleType = vtype),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+          decoration: BoxDecoration(
+            color: active ? Colors.green.withOpacity(0.08) : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: active ? Colors.green : Colors.grey.shade300, width: active ? 1.5 : 1),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(icon, style: const TextStyle(fontSize: 16)),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w600, color: active ? Colors.green : Colors.grey.shade600)),
+              ),
+            ],
           ),
         ),
       ),

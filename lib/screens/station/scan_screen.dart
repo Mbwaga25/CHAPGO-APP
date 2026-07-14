@@ -52,7 +52,7 @@ class _ScanScreenState extends State<ScanScreen> {
       body: Column(
         children: [
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Onyesha QR ya dereva kwenye fremu ya dhahabu',
             style: TextStyle(fontSize: 14, color: AppTheme.gray),
           ),
@@ -87,7 +87,7 @@ class _ScanScreenState extends State<ScanScreen> {
             padding: const EdgeInsets.all(16),
             child: TextButton(
               onPressed: () => Navigator.pushNamed(context, '/station/manual-qr'),
-              child: const Text(
+              child: Text(
                 'Ingiza QR kwa mkono',
                 style: TextStyle(
                   color: AppTheme.navy,

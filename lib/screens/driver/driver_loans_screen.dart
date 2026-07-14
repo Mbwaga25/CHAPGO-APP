@@ -7,7 +7,9 @@ import '../../services/api_service.dart';
 import '../../widgets/driver_subpage_navbar.dart';
 
 class DriverLoansScreen extends StatefulWidget {
-  const DriverLoansScreen({super.key});
+  final String? saccoId;
+  final String? saccoName;
+  const DriverLoansScreen({super.key, this.saccoId, this.saccoName});
 
   @override
   State<DriverLoansScreen> createState() => _DriverLoansScreenState();
@@ -50,6 +52,8 @@ class _DriverLoansScreenState extends State<DriverLoansScreen> {
     }
   }
 
+  List<dynamic> _joinedSaccos = [];
+
   @override
   void initState() {
     super.initState();
@@ -57,12 +61,33 @@ class _DriverLoansScreenState extends State<DriverLoansScreen> {
     _loadProfile();
   }
 
-  void _loadProfile() async {
+  void _loadProfile({String? selectedSaccoId}) async {
     setState(() => _loadingProfile = true);
     try {
       final user = context.read<AuthProvider>().user;
       if (user != null) _api.setToken(user.token);
-      final profile = await _api.get('/driver/profile');
+
+      // If no selectedSaccoId is provided, and widget.saccoId is also null,
+      // we fetch all joined saccos to populate the dropdown.
+      if (selectedSaccoId == null && widget.saccoId == null) {
+        try {
+          final r = await _api.get('/driver/saccos');
+          final list = r['saccos'] as List? ?? [];
+          _joinedSaccos = list.where((s) => s['sacco_account_id'] != null).toList();
+        } catch (e) {
+          debugPrint('Failed to load saccos list: $e');
+        }
+      }
+
+      // Determine which SACCO ID to load standards/details for
+      String? querySaccoId = selectedSaccoId ?? widget.saccoId;
+      if (querySaccoId == null && _joinedSaccos.isNotEmpty) {
+        querySaccoId = _joinedSaccos.first['id'] as String?;
+      }
+
+      final url = querySaccoId != null ? '/driver/profile?sacco_id=$querySaccoId' : '/driver/profile';
+      final profile = await _api.get(url);
+
       if (mounted) {
         setState(() {
           _nidaController.text = profile['nida_number'] as String? ?? '';
@@ -256,6 +281,7 @@ class _DriverLoansScreenState extends State<DriverLoansScreen> {
         'residential_address': address,
         'repayment_frequency': _selectedFrequency,
         'repayment_frequency_custom_days': _selectedFrequency == 'custom' ? int.tryParse(_customDaysController.text.trim()) : null,
+        'sacco_id': _saccoId,
       };
 
       await _api.post('/loans/apply', body: payload);
@@ -313,14 +339,14 @@ class _DriverLoansScreenState extends State<DriverLoansScreen> {
               children: [
                 Text(
                   lang.locale == 'en' ? 'New Loan Request' : 'Ombi la Mkopo Mpya',
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.navy),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   lang.locale == 'en'
                       ? 'Fill in the loan details and sign with the OTP verification code.'
                       : 'Jaza maelezo ya mkopo na uthibitishe kwa namba ya uhakiki ya OTP.',
-                  style: const TextStyle(fontSize: 14, color: AppTheme.gray),
+                  style: TextStyle(fontSize: 14, color: AppTheme.gray),
                 ),
                 const SizedBox(height: 24),
 
@@ -400,28 +426,49 @@ class _DriverLoansScreenState extends State<DriverLoansScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      _saccoId != null ? Icons.account_balance : Icons.warning,
-                                      color: _saccoId != null ? AppTheme.navy : Colors.orange.shade800,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        _saccoId != null 
-                                            ? (_saccoName ?? 'SACCO Member')
-                                            : (lang.locale == 'en' ? 'No SACCO Joined' : 'Hujajiunga na SACCO'),
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 15,
-                                          color: _saccoId != null ? AppTheme.navy : Colors.orange.shade900,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                 if (widget.saccoId == null && _joinedSaccos.length > 1) ...[
+                                   DropdownButtonFormField<String>(
+                                     value: _saccoId,
+                                     decoration: InputDecoration(
+                                       labelText: lang.locale == 'en' ? 'Select SACCO' : 'Chagua SACCO',
+                                       contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                     ),
+                                     items: _joinedSaccos.map((s) {
+                                       return DropdownMenuItem<String>(
+                                         value: s['id'] as String,
+                                         child: Text(s['name'] as String? ?? 'SACCO'),
+                                       );
+                                     }).toList(),
+                                     onChanged: (val) {
+                                       if (val != null) {
+                                         _loadProfile(selectedSaccoId: val);
+                                       }
+                                     },
+                                   ),
+                                 ] else ...[
+                                   Row(
+                                     children: [
+                                       Icon(
+                                         _saccoId != null ? Icons.account_balance : Icons.warning,
+                                         color: _saccoId != null ? AppTheme.navy : Colors.orange.shade800,
+                                         size: 20,
+                                       ),
+                                       const SizedBox(width: 8),
+                                       Expanded(
+                                         child: Text(
+                                           _saccoId != null 
+                                               ? (_saccoName ?? 'SACCO Member')
+                                               : (lang.locale == 'en' ? 'No SACCO Joined' : 'Hujajiunga na SACCO'),
+                                           style: TextStyle(
+                                             fontWeight: FontWeight.bold,
+                                             fontSize: 15,
+                                             color: _saccoId != null ? AppTheme.navy : Colors.orange.shade900,
+                                           ),
+                                         ),
+                                       ),
+                                     ],
+                                   ),
+                                 ],
                                 if (_saccoId != null) ...[
                                   const SizedBox(height: 10),
                                   _buildInfoRow(
@@ -510,10 +557,10 @@ class _DriverLoansScreenState extends State<DriverLoansScreen> {
                           children: [
                             Text(
                               lang.translate('verification_details'),
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
                             ),
                             if (_loadingProfile)
-                              const SizedBox(
+                              SizedBox(
                                 width: 16,
                                 height: 16,
                                 child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.gold),
@@ -597,12 +644,12 @@ class _DriverLoansScreenState extends State<DriverLoansScreen> {
                       children: [
                         Text(
                           lang.translate('phone_number_label'),
-                          style: const TextStyle(fontSize: 12, color: AppTheme.gray, fontWeight: FontWeight.w600),
+                          style: TextStyle(fontSize: 12, color: AppTheme.gray, fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           phone,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.navy),
                         ),
                         const SizedBox(height: 12),
 
@@ -612,7 +659,7 @@ class _DriverLoansScreenState extends State<DriverLoansScreen> {
                             height: 44,
                             child: ElevatedButton(
                               onPressed: _submitting ? null : () => _sendOtp(phone, lang),
-                              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.navy),
+                              style: ElevatedButton.styleFrom(backgroundColor: AppTheme.green),
                               child: _submitting
                                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                                   : Text(lang.translate('request_otp_btn')),
@@ -660,7 +707,7 @@ class _DriverLoansScreenState extends State<DriverLoansScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: const DriverSubPageNavBar(type: 'loans', activeIndex: 1),
+      bottomNavigationBar: const DriverSubPageNavBar(),
     );
   }
 
